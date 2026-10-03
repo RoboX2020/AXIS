@@ -1,0 +1,6 @@
+{
+  "name": "AeroPredict: ADS-B & TCAS/FLARM Flight Path Prediction",
+  "description": "Interactive 3D flight trajectory prediction, ADS-B telemetry modeling, TCAS II & FLARM conflict detection algorithms, and live conflict resolution decision engine.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
