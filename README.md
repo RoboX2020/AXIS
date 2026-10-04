@@ -15,16 +15,14 @@ The platform features an interactive 2D airspace tactical canvas, a real-time 3D
 - **Airspace Overlays**: Real-time rendering of the **12 NM Emergency Detection Range ring**, TCAS Tau warning rings, and velocity vectors.
 - **Scenario Presets**: Instantly load pre-configured scenarios including Head-On Collision, 90° Cross Intercept, Same-Altitude Converge, Tail Chase, and Vertical Crossing.
 
-### 2. 2D Live Trajectory Predictor & Algorithmic Pruning Scope
-- **Multi-Hypothesis Trajectory Bundle**: Continually projects 11 candidate forward trajectories at every moment (direct track, gentle to hard left/right evasive turns $\pm15^\circ, \pm30^\circ, \pm50^\circ$, expedited TCAS climb/descent $\pm2,800$ FPM, and combined 3D vectors).
-- **Algorithmic Elimination & Pruning Pipeline**:
-  - Live filtering against intruder 4D envelope using 4 distinct stages: Proximity DMOD ($d \le 1.4$ NM), TCAS Tau breach ($\tau \le 25$s), Vertical $Z_{\text{THR}}$ minima ($< 500$ FT), and FLARM emergency collision boundary.
-  - Eliminated/pruned trajectories are dynamically crossed out with **dotted red lines** and glowing failure tags detailing the exact failure metric (e.g. `PRUNED: Separation breach 0.45 NM at T+18s`).
-  - Viable safe paths are rendered in **dotted cyan/green lines** with clearance NM badges.
-- **Bold Final Executed Trajectory**:
-  - Following the pilot decision prompt, the selected trajectory locks in and is immediately rendered as a high-visibility, luminous **bold solid line** (stroke-width 4.5px with path markers and glow).
-  - Aircraft tracks along this bold solid path during live execution while discarded alternatives remain dimmed.
-- **Dual Visual Modes**: Toggle between Top-Down Lateral (X-Y) airspace grid and Vertical Altitude Profile (Z vs Time T+0s to T+75s) or Dual Split view.
+### 2. AXIS 3D Trajectory Predictor & Algorithmic Pruning Scope
+A self-contained, interactive 3D walkthrough of the pipeline AXIS runs when a TCAS **Traffic Advisory** (yellow alert) is issued. It is independent of the live two-aircraft simulation and is driven entirely from its own arguments panel.
+- **Resizable layout**: 3D viewport (default 75% width) and arguments panel separated by a draggable divider (55–85%). Scroll to zoom, drag to orbit, with Behind / Side / Top camera presets.
+- **① Diffusion-based maximum path generation**: from the aircraft nose, every node fans out `paths_per_hop` (2–10) strings on a spherical cap for `number_of_hops` (1–6) hops — `paths_per_hop ^ number_of_hops` paths in total. `turning_radius` opens the cap from a closed umbrella (wide radius) to a near-full hemisphere (tight radius). The wavefront appears hop by hop and "denoises" into place.
+- **② LLM-based pruning**: each hop-to-hop segment is checked against the airframe envelope derived from `turning_radius`, `aircraft_age`, `aircraft_weight`, `max_climb_rate` and `max_load_factor` (turn per hop, climb, descent, course reversal, plus borderline "judgement" calls). Accepted segments turn **green**, rejected ones **red**, hop by hop at human speed; children of rejected segments inherit the rejection. Every node offers a gentle climb and descent branch, so TCAS-style **vertical escapes** survive alongside lateral turns; only climbs/descents steeper than the envelope (e.g. compounding climbs, or any climb at a low `max_climb_rate`) are rejected.
+- **③ Exclude & consolidate**: *Exclude rejected paths* removes the red segments and k-means-merges the green paths into **10–20 yellow trajectories**.
+- **④ Runtime NN pruning**: the *Run-time args* tab (`weight`, `age`, `engine_health`, `fuel_remaining`, `wind_shear`) feeds a small logistic classifier that ranks the yellow trajectories live and keeps the best **8–10**, highlighting the optimal one.
+- The AI stages are deterministic, seeded simulations (no network calls) so the demo behaves identically every run. Very deep trees are sampled for rendering (≤ 8,000 segments per hop) while the theoretical path count is still reported.
 
 ### 3. High-Fidelity 3D Spatial Trajectory Visualizer (Three.js)
 - **3D Jet Models**: Detailed dual-jet aircraft models with sweep wings, winglet tip strobes, engine nacelles, and colored afterburner trails.
