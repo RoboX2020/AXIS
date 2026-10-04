@@ -732,7 +732,7 @@ export default function App() {
           </div>
 
           {/* 2D Interactive Tactical Canvas (5 columns on desktop) */}
-          <div id="tactical-map" className="lg:col-span-5 flex flex-col shadow-2xl">
+          <div id="tactical-map" className="lg:col-span-5 flex flex-col shadow-2xl relative">
             <AirspaceTacticalCanvas
               planeA={planeA}
               planeB={planeB}
@@ -743,6 +743,17 @@ export default function App() {
               isSimulating={isSimulating}
               tcasStatus={conflict.tcasStatus}
               candidateTrajectories={candidateTrajectories}
+            />
+                  {/* Pilot Decision warning, covers only the 2D tactical map */}
+            <ConflictResolutionModal
+              isOpen={isPromptOpen}
+              conflict={conflict}
+              planeA={planeA}
+              planeB={planeB}
+              options={resolutionOptions}
+              onSelectOption={handleSelectResolutionOption}
+              onDismiss={() => setIsPromptOpen(false)}
+              hasResolved={planeA.hasResolved}
             />
           </div>
         </div>
@@ -776,18 +787,6 @@ export default function App() {
           </div>
         </div>
       </main>
-
-      {/* Pilot Decision Prompt Modal with 12 NM Emergency Envelope */}
-      <ConflictResolutionModal
-        isOpen={isPromptOpen}
-        conflict={conflict}
-        planeA={planeA}
-        planeB={planeB}
-        options={resolutionOptions}
-        onSelectOption={handleSelectResolutionOption}
-        onDismiss={() => setIsPromptOpen(false)}
-        hasResolved={planeA.hasResolved}
-      />
 
       {/* Footer */}
       <footer className="mt-8 border-t border-neutral-800 px-6 py-4 bg-black text-center text-xs font-mono text-slate-400">
