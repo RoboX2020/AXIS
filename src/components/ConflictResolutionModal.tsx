@@ -92,7 +92,7 @@ export const ConflictResolutionModal: React.FC<Props> = ({
         {/* Prompt Statement */}
         <div className="px-5 pt-4 pb-2">
           <p className="text-xs text-slate-200 font-medium">
-            Select a resolution maneuver. The system will execute coordinated TCAS / FLARM vector adjustments on the <strong className="text-cyan-300">Z-axis (one climbs, one dives)</strong>, immediately eliminate discarded candidates in the <strong className="text-cyan-400">2D Live Pruning Scope</strong>, lock the chosen path in a <strong className="text-emerald-400 underline font-bold">bold solid line</strong>, and render the executed route in the 3D visualizer:
+            Select a resolution maneuver. The system will execute coordinated TCAS / FLARM vector adjustments on the <strong className="text-cyan-300">Z-axis (one climbs, one dives)</strong>, immediately eliminate discarded candidates on the <strong className="text-cyan-400">2D Tactical Airspace Map</strong>, lock the chosen path in a <strong className="text-emerald-400 underline font-bold">bold solid line</strong>, and render the executed route in the 3D visualizer:
           </p>
         </div>
 

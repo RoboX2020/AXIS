@@ -13,7 +13,7 @@ import {
 import { avionicsAudio } from './lib/soundEffects';
 import { AirspaceTacticalCanvas } from './components/AirspaceTacticalCanvas';
 import { AeroVisualizer3D } from './components/AeroVisualizer3D';
-import { TrajectoryPruningGraph } from './components/TrajectoryPruningGraph';
+import { TrajectoryPipeline3D } from './components/TrajectoryPipeline3D';
 import { CockpitDisplay } from './components/CockpitDisplay';
 import { TelemetryPanel } from './components/TelemetryPanel';
 import { SimulationControls } from './components/SimulationControls';
@@ -715,7 +715,7 @@ export default function App() {
             3D Spatial Visualizer
           </a>
           <a href="#pruning-scope" className="hover:text-cyan-400 text-cyan-400 font-extrabold transition-colors">
-            2D Trajectory Predictor &amp; Pruning Scope
+            3D Trajectory Predictor &amp; Pruning Scope
           </a>
           <a href="#tactical-map" className="hover:text-cyan-400 transition-colors">
             2D Tactical Configurator
@@ -830,15 +830,9 @@ export default function App() {
           </div>
         </div>
 
-        {/* 2D Live Trajectory Predictor & Algorithmic Pruning Scope Showcase */}
+        {/* AXIS 3D Trajectory Predictor & Algorithmic Pruning Scope (independent of the live simulation) */}
         <div id="pruning-scope" className="w-full flex flex-col shadow-2xl scroll-mt-20">
-          <TrajectoryPruningGraph
-            planeA={planeA}
-            planeB={planeB}
-            conflict={conflict}
-            candidates={candidateTrajectories}
-            isSimulating={isSimulating}
-          />
+          <TrajectoryPipeline3D />
         </div>
 
         {/* Secondary Deck: Cockpit Display & ADS-B Telemetry Feed */}
