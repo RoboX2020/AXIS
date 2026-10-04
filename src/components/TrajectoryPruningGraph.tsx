@@ -82,30 +82,75 @@ export const TrajectoryPruningGraph: React.FC<Props> = ({
     return pts
       .map((p, idx) => {
         const x = 60 + (p.timeSec / 75) * 700;
-        const y = 220 - ((p.z - 15000) / 30000) * 200;
+        // Calibrated centered around 14,000 FT (Span: 6,000 FT to 22,000 FT)
+        const y = 220 - ((p.z - 6000) / 16000) * 200;
         return `${idx === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
       })
       .join(' ');
   };
 
+  const isEmergencyRA = (conflict.tcasStatus === 'RESOLUTION_ADVISORY' || conflict.isWithinEmergencyRange) && !planeA.hasResolved;
+  const isTA = conflict.tcasStatus === 'TRAFFIC_ADVISORY' && !planeA.hasResolved;
+
   return (
-    <div className="bg-slate-900/95 border-2 border-slate-700/80 rounded-2xl overflow-hidden shadow-2xl flex flex-col font-sans backdrop-blur-md">
+    <div className={`bg-black border-2 rounded-2xl overflow-hidden shadow-2xl flex flex-col font-sans backdrop-blur-md transition-all duration-300 ${
+      isEmergencyRA
+        ? 'border-red-500 ring-4 ring-red-500/70 shadow-[0_0_55px_rgba(239,68,68,0.55)] animate-pulse'
+        : isTA
+        ? 'border-blue-400 ring-2 ring-blue-500/40 shadow-[0_0_30px_rgba(59,130,246,0.35)]'
+        : 'border-blue-900/60 shadow-blue-950/40'
+    }`}>
+      {/* 2D GRAPH DEDICATED FLASHING ALERT SYSTEM */}
+      {isEmergencyRA && (
+        <div className="bg-red-950/95 border-b-2 border-red-500 px-5 py-3 flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-white animate-pulse shadow-2xl">
+          <div className="flex items-center gap-3">
+            <span className="w-3.5 h-3.5 rounded-full bg-red-500 animate-ping inline-block shadow-lg" />
+            <span className="text-white font-black tracking-wider text-sm uppercase">
+              ⚠ TCAS RESOLUTION ADVISORY — CLASH IMMINENT (≤ 12.0 NM ENVELOPE)
+            </span>
+            <span className="bg-red-900 border border-red-400 text-white font-extrabold px-2.5 py-0.5 rounded text-xs shadow">
+              DIST: {conflict.distanceNM.toFixed(2)} NM · CLOSURE: {Math.round(conflict.rangeRateKnots)} KT · TTI: {Math.round(conflict.timeToCPASec)}s
+            </span>
+          </div>
+          <div className="text-red-200 font-bold text-xs bg-red-900/60 px-3 py-1 rounded border border-red-500/50">
+            PRUNING FILTER ACTIVE: RED PATHS ELIMINATED · SELECT RESOLUTION TO EXECUTE BOLD PATH
+          </div>
+        </div>
+      )}
+
+      {isTA && (
+        <div className="bg-blue-950/90 border-b border-blue-500 px-5 py-2.5 flex items-center justify-between gap-3 text-xs font-mono text-white shadow-xl">
+          <div className="flex items-center gap-2.5 font-bold">
+            <span className="w-3 h-3 rounded-full bg-blue-400 animate-pulse inline-block" />
+            <span className="text-blue-300 font-black tracking-wider uppercase">
+              TRAFFIC ADVISORY — INTRUDER WITHIN SURVEILLANCE ENVELOPE
+            </span>
+            <span className="bg-blue-900/80 border border-blue-500/60 text-white px-2 py-0.5 rounded text-xs">
+              RANGE: {conflict.distanceNM.toFixed(2)} NM | CLOSURE: {Math.round(conflict.rangeRateKnots)} KT
+            </span>
+          </div>
+          <span className="text-blue-200 font-semibold text-[11px] hidden md:inline">
+            MONITORING CONFLICT TRAJECTORIES · CANDIDATES EVALUATING
+          </span>
+        </div>
+      )}
+
       {/* Scope Header */}
-      <div className="bg-slate-950/90 border-b border-slate-800 p-3.5 px-5 flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-black/95 border-b border-blue-900/40 p-3.5 px-5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-cyan-950 border border-cyan-500/50 flex items-center justify-center text-cyan-400 shadow-lg shadow-cyan-950/50">
+          <div className="w-8 h-8 rounded-lg bg-blue-950 border border-blue-500/60 flex items-center justify-center text-blue-400 shadow-lg shadow-blue-950/50">
             <Layers className="w-4 h-4 stroke-[2.5]" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-black tracking-wider text-white uppercase font-display">
-                2D Live Trajectory Predictor &amp; Algorithmic Pruning Scope
+                AXIS 2D Trajectory Predictor &amp; Algorithmic Pruning Scope
               </h2>
-              <span className="bg-cyan-900/60 text-cyan-300 text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-cyan-700/60 uppercase">
+              <span className="bg-blue-900/60 text-blue-300 text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-blue-700/60 uppercase">
                 DO-260B / TCAS II v7.1
               </span>
             </div>
-            <p className="text-xs text-slate-400 font-mono">
+            <p className="text-xs text-slate-300 font-mono">
               Evaluates multi-hypothesis trajectory vectors at every moment · Filters unsafe paths · Locks final bold trajectory upon decision
             </p>
           </div>
@@ -114,13 +159,13 @@ export const TrajectoryPruningGraph: React.FC<Props> = ({
         {/* View mode buttons & toggles */}
         <div className="flex items-center gap-2">
           {/* View Mode Toggle */}
-          <div className="bg-slate-900 border border-slate-700 rounded-lg p-0.5 flex text-xs font-mono font-bold">
+          <div className="bg-neutral-900 border border-neutral-700 rounded-lg p-0.5 flex text-xs font-mono font-bold">
             <button
               onClick={() => setViewMode('LATERAL')}
               className={`px-2.5 py-1 rounded transition-colors ${
                 viewMode === 'LATERAL'
-                  ? 'bg-cyan-500 text-slate-950 font-black'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-blue-600 text-white font-black shadow-md'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               Lateral (X-Y)
@@ -129,8 +174,8 @@ export const TrajectoryPruningGraph: React.FC<Props> = ({
               onClick={() => setViewMode('VERTICAL')}
               className={`px-2.5 py-1 rounded transition-colors ${
                 viewMode === 'VERTICAL'
-                  ? 'bg-cyan-500 text-slate-950 font-black'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-blue-600 text-white font-black shadow-md'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               Profile (Z vs T)
@@ -139,8 +184,8 @@ export const TrajectoryPruningGraph: React.FC<Props> = ({
               onClick={() => setViewMode('DUAL')}
               className={`px-2.5 py-1 rounded transition-colors ${
                 viewMode === 'DUAL'
-                  ? 'bg-cyan-500 text-slate-950 font-black'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-blue-600 text-white font-black shadow-md'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               Dual Split
@@ -153,7 +198,7 @@ export const TrajectoryPruningGraph: React.FC<Props> = ({
             className={`px-2.5 py-1 text-xs font-mono font-bold rounded-lg border flex items-center gap-1.5 transition-colors ${
               showEliminated
                 ? 'bg-red-950/60 border-red-600/70 text-red-300'
-                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
+                : 'bg-neutral-800 border-neutral-700 text-slate-400 hover:text-white'
             }`}
             title="Toggle display of pruned/eliminated trajectory lines"
           >
@@ -162,17 +207,17 @@ export const TrajectoryPruningGraph: React.FC<Props> = ({
           </button>
 
           {/* Zoom controls */}
-          <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 rounded-lg p-0.5">
+          <div className="flex items-center gap-1 bg-neutral-900 border border-neutral-700 rounded-lg p-0.5">
             <button
               onClick={() => setZoomScale((z) => Math.min(2.5, z + 0.2))}
-              className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800"
+              className="p-1 text-slate-400 hover:text-white rounded hover:bg-neutral-800"
               title="Zoom In"
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setZoomScale((z) => Math.max(0.6, z - 0.2))}
-              className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800"
+              className="p-1 text-slate-400 hover:text-white rounded hover:bg-neutral-800"
               title="Zoom Out"
             >
               <ZoomOut className="w-3.5 h-3.5" />
@@ -180,7 +225,7 @@ export const TrajectoryPruningGraph: React.FC<Props> = ({
             <button
               onClick={() => setCenterOnPlaneA((c) => !c)}
               className={`p-1 rounded ${
-                centerOnPlaneA ? 'text-cyan-400 bg-cyan-950' : 'text-slate-400 hover:text-white'
+                centerOnPlaneA ? 'text-blue-400 bg-blue-950 border border-blue-600' : 'text-slate-400 hover:text-white'
               }`}
               title="Center on Flight Alpha"
             >
@@ -572,22 +617,39 @@ export const TrajectoryPruningGraph: React.FC<Props> = ({
           {/* VERTICAL PROFILE VIEW (Altitude Z vs Time/Distance) */}
           {(viewMode === 'VERTICAL' || viewMode === 'DUAL') && (
             <div className={`w-full relative ${viewMode === 'DUAL' ? 'h-[210px] border-t border-slate-800' : 'h-[460px]'}`}>
-              <div className="absolute top-2 left-3 z-10 text-[10px] font-mono text-cyan-300 font-bold bg-slate-900/80 px-2 py-0.5 rounded border border-slate-700">
-                VERTICAL ALTITUDE PROFILE (Z vs TIME T+0s to T+75s)
+              <div className="absolute top-2 left-3 z-10 text-[10px] font-mono text-blue-300 font-bold bg-black/90 px-2 py-0.5 rounded border border-blue-800">
+                VERTICAL ALTITUDE PROFILE (DEFAULT FL140 / 14,000 FT CENTERED)
               </div>
               <svg
                 viewBox="0 0 800 240"
                 className="w-full h-full select-none"
-                style={{ background: '#020617' }}
+                style={{ background: '#000000' }}
               >
-                {/* Horizontal Altitude Grid Lines */}
-                {[20000, 25000, 30000, 35000, 40000].map((altFt) => {
-                  const y = 220 - ((altFt - 15000) / 30000) * 200;
+                {/* Horizontal Altitude Grid Lines (Centered at 14,000 FT) */}
+                {[8000, 11000, 14000, 17000, 20000].map((altFt) => {
+                  const y = 220 - ((altFt - 6000) / 16000) * 200;
+                  const isDefaultAlt = altFt === 14000;
                   return (
                     <g key={`alt-grid-${altFt}`}>
-                      <line x1="50" y1={y} x2="780" y2={y} stroke="#1e293b" strokeWidth="1" strokeDasharray="3 3" />
-                      <text x="45" y={y + 3} textAnchor="end" fill="#64748b" fontSize="9" fontFamily="monospace">
-                        FL{altFt / 100}
+                      <line
+                        x1="50"
+                        y1={y}
+                        x2="780"
+                        y2={y}
+                        stroke={isDefaultAlt ? '#3b82f6' : '#1e293b'}
+                        strokeWidth={isDefaultAlt ? 1.5 : 0.8}
+                        strokeDasharray={isDefaultAlt ? undefined : '3 3'}
+                      />
+                      <text
+                        x="45"
+                        y={y + 3}
+                        textAnchor="end"
+                        fill={isDefaultAlt ? '#60a5fa' : '#64748b'}
+                        fontSize="9"
+                        fontFamily="monospace"
+                        fontWeight={isDefaultAlt ? 'bold' : 'normal'}
+                      >
+                        FL{altFt / 100} {isDefaultAlt ? '· FL140 (14,000 FT)' : ''}
                       </text>
                     </g>
                   );
@@ -617,10 +679,10 @@ export const TrajectoryPruningGraph: React.FC<Props> = ({
                       key={`vert-path-${cand.id}`}
                       d={buildVerticalPath(cand.points)}
                       fill="none"
-                      stroke={isSel ? '#10b981' : isElim ? '#f43f5e' : cand.color || '#38bdf8'}
-                      strokeWidth={isSel ? 4.5 : isElim ? 1.5 : 2.0}
+                      stroke={isSel ? '#ffffff' : isElim ? '#ef4444' : '#60a5fa'}
+                      strokeWidth={isSel ? 5.0 : isElim ? 1.5 : 2.0}
                       strokeDasharray={isSel ? undefined : isElim ? '4 4' : '5 3'}
-                      opacity={isSel ? 1.0 : planeA.hasResolved ? 0.35 : 0.8}
+                      opacity={isSel ? 1.0 : planeA.hasResolved ? 0.35 : 0.85}
                     />
                   );
                 })}
@@ -630,18 +692,19 @@ export const TrajectoryPruningGraph: React.FC<Props> = ({
                   <path
                     d={buildVerticalPath(planeB.predictedTrajectory.slice(0, 40))}
                     fill="none"
-                    stroke="#f59e0b"
-                    strokeWidth="3.0"
+                    stroke="#ffffff"
+                    strokeWidth="2.5"
                     strokeDasharray="4 3"
+                    opacity={0.8}
                   />
                 )}
 
                 {/* Ownship Initial Point */}
                 <circle
                   cx="60"
-                  cy={220 - ((planeA.position.z - 15000) / 30000) * 200}
+                  cy={220 - ((planeA.position.z - 6000) / 16000) * 200}
                   r="6"
-                  fill="#06b6d4"
+                  fill="#3b82f6"
                   stroke="#ffffff"
                   strokeWidth="2"
                 />
@@ -649,10 +712,10 @@ export const TrajectoryPruningGraph: React.FC<Props> = ({
                 {/* Intruder Initial Point */}
                 <circle
                   cx="60"
-                  cy={220 - ((planeB.position.z - 15000) / 30000) * 200}
+                  cy={220 - ((planeB.position.z - 6000) / 16000) * 200}
                   r="6"
-                  fill="#f59e0b"
-                  stroke="#ffffff"
+                  fill="#ffffff"
+                  stroke="#3b82f6"
                   strokeWidth="2"
                 />
               </svg>
@@ -660,35 +723,35 @@ export const TrajectoryPruningGraph: React.FC<Props> = ({
           )}
 
           {/* Canvas Floating Legend */}
-          <div className="absolute bottom-3 left-3 bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5 px-3 flex flex-wrap items-center gap-4 text-[11px] font-mono backdrop-blur-md shadow-lg pointer-events-none">
+          <div className="absolute bottom-3 left-3 bg-black/90 border border-blue-900/60 rounded-xl p-2.5 px-3 flex flex-wrap items-center gap-4 text-[11px] font-mono backdrop-blur-md shadow-2xl pointer-events-none">
             <div className="flex items-center gap-1.5">
-              <span className="w-5 h-0.5 border-t-2 border-dashed border-cyan-400" />
-              <span className="text-cyan-300">Viable Dotted Path</span>
+              <span className="w-5 h-0.5 border-t-2 border-dashed border-blue-400" />
+              <span className="text-blue-300">Viable Dotted Path</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-5 h-0.5 border-t-2 border-dashed border-red-500" />
-              <span className="text-rose-400">Eliminated / Pruned Path</span>
+              <span className="text-red-400">Eliminated / Pruned Path</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-5 h-1 bg-emerald-400 rounded-full shadow-[0_0_8px_#10b981]" />
-              <span className="text-emerald-300 font-bold">Bold Executed Trajectory</span>
+              <span className="w-5 h-1 bg-white rounded-full shadow-[0_0_8px_#ffffff]" />
+              <span className="text-white font-bold">Bold Executed Trajectory</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-4 h-0.5 border-t-2 border-dashed border-amber-400" />
-              <span className="text-amber-400">{planeB.callsign} Projected Path</span>
+              <span className="w-4 h-0.5 border-t-2 border-dashed border-white" />
+              <span className="text-white">{planeB.callsign} Projected Path</span>
             </div>
           </div>
         </div>
 
         {/* Pruning Algorithmic Feed & Hypotheses Drawer */}
-        <div className="xl:col-span-4 bg-slate-950/80 border-t xl:border-t-0 xl:border-l border-slate-800 p-4 flex flex-col gap-3">
+        <div className="xl:col-span-4 bg-black border-t xl:border-t-0 xl:border-l border-blue-900/60 p-4 flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-black uppercase text-slate-300 tracking-wider flex items-center gap-2">
-              <Filter className="w-3.5 h-3.5 text-cyan-400" />
+            <h3 className="text-xs font-black uppercase text-white tracking-wider flex items-center gap-2">
+              <Filter className="w-3.5 h-3.5 text-blue-400" />
               <span>Algorithmic Pruning Table</span>
             </h3>
-            <span className="text-[11px] font-mono text-slate-400">
-              {viableCount} Safe / {eliminatedCount} Pruned
+            <span className="text-[11px] font-mono text-slate-300">
+              <strong className="text-blue-400">{viableCount}</strong> Safe / <strong className="text-red-400">{eliminatedCount}</strong> Pruned
             </span>
           </div>
 

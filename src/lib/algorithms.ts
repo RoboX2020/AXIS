@@ -618,12 +618,12 @@ export function generateADSBTelemetry(aircraft: AircraftState): import('./types'
 export const SCENARIO_PRESETS: ScenarioPreset[] = [
   {
     id: 'head-on',
-    name: 'Head-On Convergence (FL320)',
-    description: 'Direct head-on collision on airway corridor. Triggers 12 NM emergency prompt envelope at rapid 900+ kt closure.',
+    name: 'Head-On Convergence (FL140)',
+    description: 'Direct head-on collision on airway corridor at FL140 (14,000 FT). Triggers 12 NM emergency prompt envelope at rapid 900+ kt closure.',
     planeA: {
       callsign: 'UAL842',
       icao: 'A1B2C3',
-      position: { x: -12.5, y: 0, z: 32000 },
+      position: { x: -12.5, y: 0, z: 14000 },
       heading: 90,
       speed: 460,
       verticalSpeed: 0,
@@ -631,7 +631,7 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
     planeB: {
       callsign: 'DLH419',
       icao: '3C5D7E',
-      position: { x: 12.5, y: 0, z: 32000 },
+      position: { x: 12.5, y: 0, z: 14000 },
       heading: 270,
       speed: 470,
       verticalSpeed: 0,
@@ -639,12 +639,12 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
   },
   {
     id: 'cross-traffic',
-    name: '90° Crossing Intercept',
-    description: 'Two routes crossing at waypoint intersection. Tests lateral vector adjustment entering 12 NM detection range.',
+    name: '90° Crossing Intercept (FL140)',
+    description: 'Two routes crossing at waypoint intersection at 14,000 FT. Tests lateral vector adjustment entering 12 NM detection range.',
     planeA: {
       callsign: 'AAL194',
       icao: 'AC0211',
-      position: { x: -11, y: -11, z: 28000 },
+      position: { x: -11, y: -11, z: 14000 },
       heading: 45,
       speed: 420,
       verticalSpeed: 0,
@@ -652,7 +652,7 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
     planeB: {
       callsign: 'SWA732',
       icao: 'A5E12F',
-      position: { x: 11, y: -11, z: 28000 },
+      position: { x: 11, y: -11, z: 14000 },
       heading: 315,
       speed: 420,
       verticalSpeed: 0,
@@ -661,11 +661,11 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
   {
     id: 'climbing-conflict',
     name: 'Climbing Departure vs Level Cruise',
-    description: 'Flight A climbing out through FL260 occupied by Flight B cruising level. Requires vertical sense coordination.',
+    description: 'Flight A climbing out through 14,000 FT occupied by Flight B cruising level. Requires vertical sense coordination.',
     planeA: {
       callsign: 'BAW287',
       icao: '4009A1',
-      position: { x: -12, y: -4, z: 21000 },
+      position: { x: -12, y: -4, z: 11000 },
       heading: 75,
       speed: 380,
       verticalSpeed: 1800,
@@ -673,7 +673,7 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
     planeB: {
       callsign: 'AFR065',
       icao: '3944B2',
-      position: { x: 11, y: 2, z: 26000 },
+      position: { x: 11, y: 2, z: 14000 },
       heading: 255,
       speed: 440,
       verticalSpeed: 0,
@@ -681,12 +681,12 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
   },
   {
     id: 'overtaking',
-    name: 'Overtaking Speed Catch-Up',
-    description: 'High speed widebody overtaking slower aircraft on same track. Triggers within 12 NM catch-up boundary.',
+    name: 'Overtaking Speed Catch-Up (FL140)',
+    description: 'High speed widebody overtaking slower aircraft on same track at 14,000 FT. Triggers within 12 NM catch-up boundary.',
     planeA: {
       callsign: 'SIA022',
       icao: '76CEA1',
-      position: { x: -13, y: 1.5, z: 36000 },
+      position: { x: -13, y: 1.5, z: 14000 },
       heading: 85,
       speed: 540,
       verticalSpeed: 0,
@@ -694,7 +694,7 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
     planeB: {
       callsign: 'ASA348',
       icao: 'A714C8',
-      position: { x: -2, y: 2.2, z: 36000 },
+      position: { x: -2, y: 2.2, z: 14000 },
       heading: 85,
       speed: 360,
       verticalSpeed: 0,
@@ -703,11 +703,11 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
   {
     id: 'safe-parallel',
     name: 'Safe Staggered Parallel Airway',
-    description: 'Parallel routes with standard 1,000 FT vertical separation and 3.5 NM lateral buffer outside conflict zone.',
+    description: 'Parallel routes with standard 1,000 FT vertical separation (14,000 FT vs 15,000 FT) and 3.5 NM lateral buffer outside conflict zone.',
     planeA: {
       callsign: 'KLM601',
       icao: '4840F2',
-      position: { x: -12, y: -2, z: 34000 },
+      position: { x: -12, y: -2, z: 14000 },
       heading: 90,
       speed: 450,
       verticalSpeed: 0,
@@ -715,7 +715,7 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
     planeB: {
       callsign: 'QFA012',
       icao: '7C6B20',
-      position: { x: 12, y: 2, z: 35000 },
+      position: { x: 12, y: 2, z: 15000 },
       heading: 270,
       speed: 460,
       verticalSpeed: 0,

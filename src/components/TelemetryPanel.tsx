@@ -27,16 +27,16 @@ export const TelemetryPanel: React.FC<Props> = ({
   const adsbB = generateADSBTelemetry(planeB);
 
   return (
-    <div className="bg-slate-900 border border-slate-700/80 rounded-xl p-4 flex flex-col h-full text-slate-100 shadow-xl">
+    <div className="bg-black border border-blue-900/60 rounded-xl p-4 flex flex-col h-full text-white shadow-2xl">
       {/* Tab Navigation */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
-        <div className="flex items-center gap-1.5 p-1 bg-slate-950 rounded-xl border border-slate-800">
+      <div className="flex items-center justify-between border-b border-blue-900/40 pb-3 mb-3">
+        <div className="flex items-center gap-1.5 p-1 bg-neutral-950 rounded-xl border border-neutral-800">
           <button
             onClick={() => setActiveTab('TELEMETRY')}
             className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
               activeTab === 'TELEMETRY'
-                ? 'bg-slate-800 text-cyan-300 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
             <Radio className="w-3.5 h-3.5" />
@@ -47,8 +47,8 @@ export const TelemetryPanel: React.FC<Props> = ({
             onClick={() => setActiveTab('MATH')}
             className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
               activeTab === 'MATH'
-                ? 'bg-slate-800 text-cyan-300 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
             <Cpu className="w-3.5 h-3.5" />
@@ -59,8 +59,8 @@ export const TelemetryPanel: React.FC<Props> = ({
             onClick={() => setActiveTab('GRAPHS')}
             className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
               activeTab === 'GRAPHS'
-                ? 'bg-slate-800 text-cyan-300 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
             <BarChart2 className="w-3.5 h-3.5" />
@@ -71,8 +71,8 @@ export const TelemetryPanel: React.FC<Props> = ({
             onClick={() => setActiveTab('PACKETS')}
             className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
               activeTab === 'PACKETS'
-                ? 'bg-slate-800 text-cyan-300 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
             <Terminal className="w-3.5 h-3.5" />
@@ -82,7 +82,7 @@ export const TelemetryPanel: React.FC<Props> = ({
 
         <div className="hidden sm:flex items-center gap-2 text-xs font-mono">
           <span className="text-slate-400 font-bold">Detection Range:</span>
-          <span className="text-red-400 font-black bg-red-950/70 border border-red-800/80 px-2 py-0.5 rounded">
+          <span className="text-blue-300 font-black bg-blue-950 border border-blue-600 px-2 py-0.5 rounded shadow">
             12.0 NM EMERGENCY PROMPT
           </span>
         </div>
@@ -93,14 +93,14 @@ export const TelemetryPanel: React.FC<Props> = ({
         <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Plane A Card */}
-            <div className="p-3.5 bg-slate-950 rounded-xl border border-cyan-500/40 flex flex-col gap-2 shadow-md">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <div className="p-3.5 bg-neutral-950 rounded-xl border border-blue-500/50 flex flex-col gap-2 shadow-md">
+              <div className="flex items-center justify-between border-b border-neutral-800 pb-2">
                 <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400/50" />
-                  <span className="font-mono font-bold text-sm text-cyan-300">{adsbA.callsign}</span>
+                  <span className="w-3 h-3 rounded-full bg-blue-500 shadow-sm shadow-blue-500/50" />
+                  <span className="font-mono font-bold text-sm text-blue-400">{adsbA.callsign}</span>
                   <span className="text-[10px] font-mono text-slate-400">HEX: 0x{adsbA.icaoHex}</span>
                 </div>
-                <span className="text-[10px] font-mono font-bold bg-cyan-950 border border-cyan-700 px-2 py-0.5 rounded text-cyan-300">
+                <span className="text-[10px] font-mono font-bold bg-blue-950 border border-blue-700 px-2 py-0.5 rounded text-blue-300">
                   SQK: {adsbA.squawk}
                 </span>
               </div>
@@ -108,31 +108,31 @@ export const TelemetryPanel: React.FC<Props> = ({
               <div className="grid grid-cols-2 gap-y-2 gap-x-3 text-xs font-mono">
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold">BARO ALTITUDE:</span>
-                  <div className="font-black text-slate-100">{adsbA.baroAltitudeFt.toLocaleString()} FT</div>
+                  <div className="font-black text-white">{adsbA.baroAltitudeFt.toLocaleString()} FT</div>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold">GNSS ALTITUDE:</span>
-                  <div className="font-black text-slate-100">{adsbA.gnssAltitudeFt.toLocaleString()} FT</div>
+                  <div className="font-black text-white">{adsbA.gnssAltitudeFt.toLocaleString()} FT</div>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold">GROUND SPEED:</span>
-                  <div className="font-black text-slate-100">{adsbA.groundSpeedKt} KT (TAS: {adsbA.trueAirspeedKt})</div>
+                  <div className="font-black text-white">{adsbA.groundSpeedKt} KT (TAS: {adsbA.trueAirspeedKt})</div>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold">TRACK / HEADING:</span>
-                  <div className="font-black text-slate-100">{adsbA.headingDeg}°</div>
+                  <div className="font-black text-white">{adsbA.headingDeg}°</div>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold">VERTICAL RATE:</span>
-                  <div className={`font-black ${adsbA.verticalRateFpm !== 0 ? 'text-cyan-400' : 'text-slate-100'}`}>
+                  <div className={`font-black ${adsbA.verticalRateFpm !== 0 ? 'text-blue-400' : 'text-white'}`}>
                     {adsbA.verticalRateFpm > 0 ? '+' : ''}{adsbA.verticalRateFpm} FPM
                   </div>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold">TURN RATE:</span>
-                  <div className="font-black text-slate-100">{adsbA.turnRateDegSec}°/s</div>
+                  <div className="font-black text-white">{adsbA.turnRateDegSec}°/s</div>
                 </div>
-                <div className="col-span-2 border-t border-slate-800 pt-2 flex justify-between text-[11px]">
+                <div className="col-span-2 border-t border-neutral-800 pt-2 flex justify-between text-[11px]">
                   <span className="text-slate-400 font-bold">LAT / LON:</span>
                   <span className="text-slate-200 font-semibold">{adsbA.lat.toFixed(4)}°N, {Math.abs(adsbA.lon).toFixed(4)}°W</span>
                 </div>
@@ -144,14 +144,14 @@ export const TelemetryPanel: React.FC<Props> = ({
             </div>
 
             {/* Plane B Card */}
-            <div className="p-3.5 bg-slate-950 rounded-xl border border-amber-500/40 flex flex-col gap-2 shadow-md">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <div className="p-3.5 bg-neutral-950 rounded-xl border border-white/40 flex flex-col gap-2 shadow-md">
+              <div className="flex items-center justify-between border-b border-neutral-800 pb-2">
                 <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-amber-400 shadow-sm shadow-amber-400/50" />
-                  <span className="font-mono font-bold text-sm text-amber-300">{adsbB.callsign}</span>
+                  <span className="w-3 h-3 rounded-full bg-white shadow-sm shadow-white/50" />
+                  <span className="font-mono font-bold text-sm text-white">{adsbB.callsign}</span>
                   <span className="text-[10px] font-mono text-slate-400">HEX: 0x{adsbB.icaoHex}</span>
                 </div>
-                <span className="text-[10px] font-mono font-bold bg-amber-950 border border-amber-700 px-2 py-0.5 rounded text-amber-300">
+                <span className="text-[10px] font-mono font-bold bg-neutral-900 border border-neutral-700 px-2 py-0.5 rounded text-white">
                   SQK: {adsbB.squawk}
                 </span>
               </div>
@@ -159,31 +159,31 @@ export const TelemetryPanel: React.FC<Props> = ({
               <div className="grid grid-cols-2 gap-y-2 gap-x-3 text-xs font-mono">
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold">BARO ALTITUDE:</span>
-                  <div className="font-black text-slate-100">{adsbB.baroAltitudeFt.toLocaleString()} FT</div>
+                  <div className="font-black text-white">{adsbB.baroAltitudeFt.toLocaleString()} FT</div>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold">GNSS ALTITUDE:</span>
-                  <div className="font-black text-slate-100">{adsbB.gnssAltitudeFt.toLocaleString()} FT</div>
+                  <div className="font-black text-white">{adsbB.gnssAltitudeFt.toLocaleString()} FT</div>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold">GROUND SPEED:</span>
-                  <div className="font-black text-slate-100">{adsbB.groundSpeedKt} KT (TAS: {adsbB.trueAirspeedKt})</div>
+                  <div className="font-black text-white">{adsbB.groundSpeedKt} KT (TAS: {adsbB.trueAirspeedKt})</div>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold">TRACK / HEADING:</span>
-                  <div className="font-black text-slate-100">{adsbB.headingDeg}°</div>
+                  <div className="font-black text-white">{adsbB.headingDeg}°</div>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold">VERTICAL RATE:</span>
-                  <div className={`font-black ${adsbB.verticalRateFpm !== 0 ? 'text-amber-400' : 'text-slate-100'}`}>
+                  <div className={`font-black ${adsbB.verticalRateFpm !== 0 ? 'text-white' : 'text-slate-300'}`}>
                     {adsbB.verticalRateFpm > 0 ? '+' : ''}{adsbB.verticalRateFpm} FPM
                   </div>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold">TURN RATE:</span>
-                  <div className="font-black text-slate-100">{adsbB.turnRateDegSec}°/s</div>
+                  <div className="font-black text-white">{adsbB.turnRateDegSec}°/s</div>
                 </div>
-                <div className="col-span-2 border-t border-slate-800 pt-2 flex justify-between text-[11px]">
+                <div className="col-span-2 border-t border-neutral-800 pt-2 flex justify-between text-[11px]">
                   <span className="text-slate-400 font-bold">LAT / LON:</span>
                   <span className="text-slate-200 font-semibold">{adsbB.lat.toFixed(4)}°N, {Math.abs(adsbB.lon).toFixed(4)}°W</span>
                 </div>

@@ -18,48 +18,13 @@ import { CockpitDisplay } from './components/CockpitDisplay';
 import { TelemetryPanel } from './components/TelemetryPanel';
 import { SimulationControls } from './components/SimulationControls';
 import { ConflictResolutionModal } from './components/ConflictResolutionModal';
-import { HostGameArena } from './components/game/HostGameArena';
-import { MobileFlightController } from './components/game/MobileFlightController';
-import { Plane, ShieldAlert, Radio, AlertOctagon, HelpCircle, CheckCircle2, RefreshCw, Zap, Gamepad2 } from 'lucide-react';
+import { Plane, ShieldAlert, Radio, AlertOctagon, HelpCircle, CheckCircle2, RefreshCw, Zap, Crosshair } from 'lucide-react';
 
 export default function App() {
-  // Webapp Mode Switcher (AeroPredict Analytics vs SkyClash Multiplayer Host vs Mobile Flight Controller)
-  type PageMode = 'simulation' | 'game' | 'controller';
-  const [pageMode, setPageMode] = useState<PageMode>(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const mode = params.get('mode');
-      if (mode === 'controller') return 'controller';
-      if (mode === 'game') return 'game';
-    }
-    return 'simulation';
-  });
-
-  const roomId = useMemo(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      return params.get('room') || 'sky-arena-1';
-    }
-    return 'sky-arena-1';
-  }, []);
-
-  const handleSwitchPage = (mode: PageMode) => {
-    setPageMode(mode);
-    if (typeof window !== 'undefined') {
-      const url = new URL(window.location.href);
-      if (mode === 'simulation') {
-        url.searchParams.delete('mode');
-      } else {
-        url.searchParams.set('mode', mode);
-      }
-      window.history.pushState({}, '', url.toString());
-    }
-  };
-
   const [activeScenarioId, setActiveScenarioId] = useState<string>('head-on');
   const initialPreset = SCENARIO_PRESETS[0];
 
-  // Aircraft A State (Flight Alpha - Cyan)
+  // Aircraft A State (Flight Alpha - Electric Blue) - Default 14,000 FT
   const [planeA, setPlaneA] = useState<AircraftState>(() => {
     const latLon = nmToLatLon(initialPreset.planeA.position.x, initialPreset.planeA.position.y);
     return {
@@ -79,7 +44,7 @@ export default function App() {
       turnRate: 0,
       bankAngle: 0,
       pitchAngle: 0,
-      color: '#06b6d4',
+      color: '#3b82f6',
       lat: latLon.lat,
       lon: latLon.lon,
       history: [{ ...initialPreset.planeA.position }],
@@ -91,7 +56,7 @@ export default function App() {
     };
   });
 
-  // Aircraft B State (Flight Bravo - Amber)
+  // Aircraft B State (Flight Bravo - Titanium White) - Default 14,000 FT
   const [planeB, setPlaneB] = useState<AircraftState>(() => {
     const latLon = nmToLatLon(initialPreset.planeB.position.x, initialPreset.planeB.position.y);
     return {
@@ -111,7 +76,7 @@ export default function App() {
       turnRate: 0,
       bankAngle: 0,
       pitchAngle: 0,
-      color: '#f59e0b',
+      color: '#ffffff',
       lat: latLon.lat,
       lon: latLon.lon,
       history: [{ ...initialPreset.planeB.position }],
@@ -634,132 +599,81 @@ export default function App() {
     });
   };
 
-  // Render Mobile Phone Flight Controller View
-  if (pageMode === 'controller') {
-    return (
-      <MobileFlightController
-        roomId={roomId}
-        onExitToHost={() => handleSwitchPage('game')}
-      />
-    );
-  }
-
-  // Render 3D Multiplayer Game Host Screen View
-  if (pageMode === 'game') {
-    return (
-      <HostGameArena
-        roomId={roomId}
-        onNavigateToSimulator={() => handleSwitchPage('simulation')}
-        onOpenMobileControllerDirectly={() => handleSwitchPage('controller')}
-      />
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Top Suite Navigation Switcher */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 border-b border-cyan-500/30 px-6 py-2 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
-        <div className="flex items-center gap-2">
-          <span className="text-slate-400 font-bold uppercase tracking-wider">AeroPredict Suite:</span>
-          <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 rounded-lg p-0.5">
-            <button
-              onClick={() => handleSwitchPage('simulation')}
-              className={`px-3 py-1 rounded-md font-bold transition-all flex items-center gap-1.5 ${
-                pageMode === 'simulation'
-                  ? 'bg-cyan-500 text-slate-950 font-black shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Plane className="w-3.5 h-3.5" />
-              <span>ADS-B &amp; TCAS Predictor</span>
-            </button>
-            <button
-              onClick={() => handleSwitchPage('game')}
-              className="px-3 py-1 rounded-md font-bold transition-all flex items-center gap-1.5 text-amber-300 hover:bg-slate-800"
-            >
-              <Gamepad2 className="w-3.5 h-3.5 text-amber-400" />
-              <span className="font-extrabold">🎮 SkyClash: Multiplayer 3D Game (Host &amp; Phone)</span>
-            </button>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => handleSwitchPage('game')}
-            className="text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-bold underline decoration-cyan-500/50"
-          >
-            <span>Host Screen: Display QR Code for Mobile Players &rarr;</span>
-          </button>
-        </div>
-      </div>
-
-      {/* High-Visibility Navigation Top Bar Contract */}
-      <header className="flex items-center justify-between px-6 py-3.5 border-b border-slate-700/80 bg-slate-950/90 backdrop-blur-md sticky top-0 z-40 shadow-lg">
+    <div className="min-h-screen bg-black text-white flex flex-col font-sans">
+      {/* High-Visibility Navigation Top Bar - AXIS Airspace eXecution & Intercept System */}
+      <header className="flex items-center justify-between px-6 py-3.5 border-b border-blue-900/60 bg-black/95 backdrop-blur-md sticky top-0 z-40 shadow-2xl">
         {/* Zone 1: Wordmark */}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/25">
-            <Radio className="w-5 h-5 text-slate-950 stroke-[2.5]" />
+          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/35 border border-blue-400/40">
+            <Crosshair className="w-6 h-6 text-white stroke-[2.5]" />
           </div>
           <div>
-            <span className="text-lg font-black tracking-tight text-white font-display">
-              AeroPredict
-            </span>
-            <span className="text-xs font-mono text-cyan-300 font-bold ml-2 hidden md:inline">
-              ADS-B Trajectory Prediction &amp; TCAS/FLARM Resolution
+            <div className="flex items-center gap-2">
+              <span className="text-xl font-black tracking-tight text-white font-display">
+                AXIS
+              </span>
+              <span className="text-[11px] font-mono text-blue-400 font-black uppercase tracking-widest bg-blue-950/90 border border-blue-700/60 px-2 py-0.5 rounded">
+                FL140 (14,000 FT)
+              </span>
+            </div>
+            <span className="text-xs font-mono text-blue-300 font-bold hidden md:inline">
+              Airspace eXecution &amp; Intercept System · TCAS II &amp; FLARM Engine
             </span>
           </div>
         </div>
 
         {/* Zone 2: Navigation Links */}
         <nav className="hidden lg:flex items-center gap-6 text-xs font-bold text-slate-300">
-          <a href="#3d-visualizer" className="hover:text-cyan-400 transition-colors">
+          <a href="#3d-visualizer" className="hover:text-blue-400 transition-colors">
             3D Spatial Visualizer
           </a>
-          <a href="#pruning-scope" className="hover:text-cyan-400 text-cyan-400 font-extrabold transition-colors">
+          <a href="#pruning-scope" className="hover:text-blue-400 text-blue-400 font-extrabold transition-colors">
             2D Trajectory Predictor &amp; Pruning Scope
           </a>
-          <a href="#tactical-map" className="hover:text-cyan-400 transition-colors">
+          <a href="#tactical-map" className="hover:text-blue-400 transition-colors">
             2D Tactical Configurator
           </a>
-          <a href="#cockpit-cdti" className="hover:text-cyan-400 transition-colors">
+          <a href="#cockpit-cdti" className="hover:text-blue-400 transition-colors">
             Cockpit CDTI &amp; TCAS VSI
           </a>
-          <a href="#telemetry-feed" className="hover:text-cyan-400 transition-colors">
+          <a href="#telemetry-feed" className="hover:text-blue-400 transition-colors">
             ADS-B Telemetry Data
           </a>
         </nav>
 
-        {/* Zone 3: Actions & 12 NM Alert Status */}
+        {/* Zone 3: Actions & Status Indicator */}
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => handleLoadScenario(SCENARIO_PRESETS[0])}
-            className="px-3.5 py-1.5 text-xs font-bold text-slate-100 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-1.5 border border-slate-700 shadow"
-            title="Reset to Head-On Conflict scenario"
+            className="px-3.5 py-1.5 text-xs font-bold text-white bg-neutral-900 hover:bg-neutral-800 rounded-lg transition-colors flex items-center gap-1.5 border border-neutral-700 shadow"
+            title="Reset to Head-On Conflict scenario (FL140)"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Head-On Intercept</span>
+            <span className="hidden sm:inline">Reset Scenario</span>
           </button>
 
           <div
-            className={`px-3 py-1.5 text-xs font-mono font-black rounded-lg border flex items-center gap-2 shadow-md ${
+            className={`px-3 py-1.5 text-xs font-mono font-bold rounded-lg border flex items-center gap-2 shadow-md ${
               conflict.tcasStatus === 'RESOLUTION_ADVISORY' || conflict.isWithinEmergencyRange
-                ? 'bg-red-600 text-white animate-pulse border-white'
+                ? 'bg-blue-950 text-white border-blue-500 shadow-blue-950/60'
                 : conflict.tcasStatus === 'TRAFFIC_ADVISORY'
-                ? 'bg-amber-500 text-slate-950 font-bold border-amber-300'
-                : 'bg-emerald-950 text-emerald-300 border-emerald-600'
+                ? 'bg-neutral-900 text-blue-300 border-blue-700'
+                : 'bg-neutral-950 text-slate-300 border-neutral-800'
             }`}
           >
             <span
               className={`w-2.5 h-2.5 rounded-full ${
                 conflict.tcasStatus === 'RESOLUTION_ADVISORY' || conflict.isWithinEmergencyRange
-                  ? 'bg-white'
+                  ? 'bg-blue-400'
                   : conflict.tcasStatus === 'TRAFFIC_ADVISORY'
-                  ? 'bg-slate-950'
-                  : 'bg-emerald-400'
+                  ? 'bg-blue-300'
+                  : 'bg-slate-400'
               }`}
             />
             <span>
               {conflict.isWithinEmergencyRange
-                ? 'EMERGENCY: &le; 12 NM RA'
+                ? 'EMERGENCY: ≤ 12 NM ENVELOPE'
                 : `TCAS: ${conflict.tcasStatus}`}
             </span>
           </div>
@@ -873,8 +787,8 @@ export default function App() {
       />
 
       {/* Footer */}
-      <footer className="mt-8 border-t border-slate-800 px-6 py-4 bg-slate-950 text-center text-xs font-mono text-slate-400">
-        AeroPredict Flight Trajectory Simulation Engine · 12.0 NM Emergency Detection Envelope · FAA TCAS II v7.1 Modified Tau &amp; FLARM Non-Linear Trajectory Algorithms
+      <footer className="mt-8 border-t border-neutral-800 px-6 py-4 bg-black text-center text-xs font-mono text-slate-400">
+        AXIS: Airspace eXecution &amp; Intercept System · Tactical Flight Trajectory Prediction &amp; TCAS II v7.1 Avoidance Engine · Default Flight Level FL140 (14,000 FT)
       </footer>
     </div>
   );

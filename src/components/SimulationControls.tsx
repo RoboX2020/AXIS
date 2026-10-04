@@ -40,15 +40,15 @@ export const SimulationControls: React.FC<Props> = ({
   const isInside12NM = currentDistanceNM <= EMERGENCY_PROMPT_RANGE_NM;
 
   return (
-    <div className="bg-slate-900 border border-slate-700/80 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-xl">
+    <div className="bg-black border border-blue-900/60 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-2xl">
       {/* Primary Play/Pause/Reset Group */}
       <div className="flex items-center gap-2 flex-wrap">
         <button
           onClick={onToggleSimulate}
           className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-lg ${
             isSimulating
-              ? 'bg-amber-400 hover:bg-amber-300 text-slate-950 ring-2 ring-amber-400/50'
-              : 'bg-cyan-400 hover:bg-cyan-300 text-slate-950 ring-2 ring-cyan-400/50'
+              ? 'bg-blue-600 hover:bg-blue-500 text-white ring-2 ring-blue-400/50'
+              : 'bg-white hover:bg-slate-100 text-black font-black ring-2 ring-white/50'
           }`}
         >
           {isSimulating ? (
@@ -67,7 +67,7 @@ export const SimulationControls: React.FC<Props> = ({
         <button
           onClick={onStepForward}
           disabled={isSimulating}
-          className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white disabled:opacity-40 rounded-xl text-xs font-mono font-bold transition-colors border border-slate-700 shadow"
+          className="px-3.5 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white disabled:opacity-40 rounded-xl text-xs font-mono font-bold transition-colors border border-neutral-700 shadow"
           title="Step +1 second forward"
         >
           Step +1s
@@ -75,7 +75,7 @@ export const SimulationControls: React.FC<Props> = ({
 
         <button
           onClick={onReset}
-          className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 border border-slate-700 shadow"
+          className="px-3.5 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-slate-200 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 border border-neutral-700 shadow"
           title="Reset to initial trajectory start points"
         >
           <RotateCcw className="w-4 h-4" />
@@ -83,14 +83,14 @@ export const SimulationControls: React.FC<Props> = ({
         </button>
 
         {/* Speed Selector */}
-        <div className="flex items-center gap-1 p-1 bg-slate-950 rounded-xl border border-slate-800">
+        <div className="flex items-center gap-1 p-1 bg-neutral-950 rounded-xl border border-neutral-800">
           {[0.5, 1, 2, 4].map((spd) => (
             <button
               key={spd}
               onClick={() => onChangeSpeed(spd)}
               className={`px-2.5 py-1 text-xs font-mono font-bold rounded-lg transition-all ${
                 simSpeed === spd
-                  ? 'bg-cyan-500 text-slate-950 shadow-md'
+                  ? 'bg-blue-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -102,9 +102,9 @@ export const SimulationControls: React.FC<Props> = ({
 
       {/* Middle: Sim Elapsed Time & 12 NM Status Badge */}
       <div className="flex items-center gap-3.5 text-xs font-mono flex-wrap">
-        <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
+        <div className="flex items-center gap-2 bg-neutral-950 px-3 py-1.5 rounded-lg border border-neutral-800">
           <span className="text-slate-400 font-bold">TIME:</span>
-          <span className="text-cyan-300 font-black tabular-nums text-sm">
+          <span className="text-blue-400 font-black tabular-nums text-sm">
             T+{simTimeSec.toFixed(1)}s
           </span>
         </div>
@@ -113,11 +113,11 @@ export const SimulationControls: React.FC<Props> = ({
         <div
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${
             isInside12NM
-              ? 'bg-red-950/90 text-red-200 border-red-500 animate-pulse ring-2 ring-red-500/30'
-              : 'bg-slate-950 text-slate-300 border-slate-800'
+              ? 'bg-blue-950 text-blue-200 border-blue-500 shadow-md shadow-blue-950/50'
+              : 'bg-neutral-950 text-slate-300 border-neutral-800'
           }`}
         >
-          <ShieldAlert className="w-4 h-4 text-red-400" />
+          <ShieldAlert className="w-4 h-4 text-blue-400" />
           <span>
             {isInside12NM
               ? 'INSIDE 12 NM EMERGENCY PROMPT ZONE'
@@ -130,10 +130,10 @@ export const SimulationControls: React.FC<Props> = ({
           onClick={onOpenDecisionPrompt}
           className={`px-4 py-2 rounded-xl text-xs font-black font-mono flex items-center gap-2 transition-all shadow-lg ${
             hasCollisionRisk || isInside12NM
-              ? 'bg-red-600 hover:bg-red-500 text-white animate-bounce ring-2 ring-white/50'
+              ? 'bg-blue-600 hover:bg-blue-500 text-white ring-2 ring-white/50'
               : hasResolved
-              ? 'bg-emerald-600 text-white'
-              : 'bg-slate-800 hover:bg-slate-700 text-white border border-slate-600'
+              ? 'bg-neutral-800 text-white border border-neutral-700'
+              : 'bg-neutral-900 hover:bg-neutral-800 text-white border border-neutral-700'
           }`}
         >
           <AlertOctagon className="w-4 h-4" />
@@ -149,12 +149,12 @@ export const SimulationControls: React.FC<Props> = ({
 
       {/* Right: Audio & Auto-pause switches */}
       <div className="flex items-center gap-3">
-        <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-mono font-bold text-slate-300 bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800">
+        <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-mono font-bold text-slate-300 bg-neutral-950 px-2.5 py-1.5 rounded-lg border border-neutral-800">
           <input
             type="checkbox"
             checked={autoPauseOnRA}
             onChange={onToggleAutoPause}
-            className="rounded bg-slate-800 border-slate-600 text-cyan-400 focus:ring-0 w-4 h-4 cursor-pointer"
+            className="rounded bg-neutral-800 border-neutral-600 text-blue-500 focus:ring-0 w-4 h-4 cursor-pointer"
           />
           <span>Auto-Pause at 12 NM / RA</span>
         </label>
@@ -163,8 +163,8 @@ export const SimulationControls: React.FC<Props> = ({
           onClick={onToggleMute}
           className={`p-2.5 rounded-xl border text-xs font-bold transition-all shadow ${
             !isAudioMuted
-              ? 'bg-cyan-950 text-cyan-300 border-cyan-700'
-              : 'bg-slate-800 text-slate-400 border-slate-700'
+              ? 'bg-blue-950 text-blue-300 border-blue-700'
+              : 'bg-neutral-900 text-slate-400 border-neutral-700'
           }`}
           title={isAudioMuted ? 'Unmute cockpit audio alerts' : 'Mute cockpit audio alerts'}
         >
