@@ -44,16 +44,16 @@ export const CockpitDisplay: React.FC<Props> = ({ ownship, intruder, conflict })
   const isTA = conflict.tcasStatus === 'TRAFFIC_ADVISORY';
 
   return (
-    <div className="bg-slate-900 border border-slate-700/80 rounded-xl p-4 flex flex-col h-full shadow-xl">
+    <div className="bg-black border border-blue-900/60 rounded-xl p-4 flex flex-col h-full shadow-2xl">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-2.5 mb-3">
+      <div className="flex items-center justify-between border-b border-blue-900/40 pb-2.5 mb-3">
         <div>
-          <div className="text-[10px] font-mono uppercase tracking-wider text-cyan-400 font-bold">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-blue-400 font-bold">
             Avionics Cockpit CDTI &amp; TCAS Display
           </div>
-          <h3 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
+          <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
             <span>Ownship: {ownship.callsign}</span>
-            <span className="text-[10px] font-mono text-cyan-300 bg-cyan-950 border border-cyan-700 px-1.5 py-0.5 rounded font-bold">
+            <span className="text-[10px] font-mono text-blue-300 bg-blue-950 border border-blue-700 px-1.5 py-0.5 rounded font-bold">
               ADS-B IN ACTIVE
             </span>
           </h3>
@@ -86,13 +86,13 @@ export const CockpitDisplay: React.FC<Props> = ({ ownship, intruder, conflict })
       {/* Main Dual Gauges (CDTI Radar on left, TCAS VSI Dial on right) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1 items-center">
         {/* Left: CDTI Traffic Scope */}
-        <div className="flex flex-col items-center justify-center p-3 bg-slate-950 rounded-xl border border-slate-800">
+        <div className="flex flex-col items-center justify-center p-3 bg-neutral-950 rounded-xl border border-neutral-800">
           <div className="text-[10px] font-mono font-bold text-slate-300 mb-1 flex items-center gap-1">
-            <Radio className="w-3.5 h-3.5 text-cyan-400" />
+            <Radio className="w-3.5 h-3.5 text-blue-400" />
             <span>CDTI Traffic Radar (15 NM Scope)</span>
           </div>
 
-          <div className="relative w-[180px] h-[180px] rounded-full bg-black border-2 border-slate-700 flex items-center justify-center overflow-hidden shadow-inner">
+          <div className="relative w-[180px] h-[180px] rounded-full bg-black border-2 border-blue-900/60 flex items-center justify-center overflow-hidden shadow-inner">
             {/* 12 NM Emergency ring overlay */}
             <div
               className="absolute rounded-full border border-red-500/80 border-dashed"
@@ -103,21 +103,21 @@ export const CockpitDisplay: React.FC<Props> = ({ ownship, intruder, conflict })
             />
 
             {/* Standard Range rings */}
-            <div className="absolute w-[120px] h-[120px] rounded-full border border-dashed border-slate-800" />
-            <div className="absolute w-[60px] h-[60px] rounded-full border border-dashed border-slate-800" />
+            <div className="absolute w-[120px] h-[120px] rounded-full border border-dashed border-blue-900/40" />
+            <div className="absolute w-[60px] h-[60px] rounded-full border border-dashed border-blue-900/40" />
 
             {/* Compass cross */}
-            <div className="absolute w-full h-[1px] bg-slate-800" />
-            <div className="absolute h-full w-[1px] bg-slate-800" />
+            <div className="absolute w-full h-[1px] bg-blue-900/40" />
+            <div className="absolute h-full w-[1px] bg-blue-900/40" />
 
             {/* Range labels */}
             <span className="absolute top-1 text-[8px] font-mono text-slate-400 font-bold">15 NM</span>
             <span className="absolute top-[18px] text-[8px] font-mono text-red-400 font-bold">12 NM EMERG</span>
-            <span className="absolute top-[32px] text-[8px] font-mono text-slate-500">10 NM</span>
-            <span className="absolute top-[62px] text-[8px] font-mono text-slate-600">5 NM</span>
+            <span className="absolute top-[32px] text-[8px] font-mono text-slate-400">10 NM</span>
+            <span className="absolute top-[62px] text-[8px] font-mono text-slate-400">5 NM</span>
 
             {/* Ownship Symbol */}
-            <div className="absolute z-10 w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-b-[14px] border-b-cyan-400 drop-shadow" />
+            <div className="absolute z-10 w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-b-[14px] border-b-blue-400 drop-shadow" />
 
             {/* Intruder Aircraft Symbol */}
             <div
@@ -129,9 +129,9 @@ export const CockpitDisplay: React.FC<Props> = ({ ownship, intruder, conflict })
               {isRA ? (
                 <div className="w-4 h-4 bg-red-600 border-2 border-white shadow-lg animate-pulse" />
               ) : isTA ? (
-                <div className="w-4 h-4 bg-amber-500 rounded-full border border-white shadow-md" />
+                <div className="w-4 h-4 bg-blue-400 rounded-full border border-white shadow-md" />
               ) : (
-                <div className="w-3.5 h-3.5 rotate-45 border-2 border-cyan-400 bg-cyan-950" />
+                <div className="w-3.5 h-3.5 rotate-45 border-2 border-white bg-blue-950" />
               )}
 
               {/* Data block tag */}
@@ -140,8 +140,8 @@ export const CockpitDisplay: React.FC<Props> = ({ ownship, intruder, conflict })
                   isRA
                     ? 'text-white bg-red-600 border border-white'
                     : isTA
-                    ? 'text-slate-950 bg-amber-400 font-bold'
-                    : 'text-cyan-300 bg-slate-900 border border-cyan-700'
+                    ? 'text-white bg-blue-600 font-bold'
+                    : 'text-white bg-black border border-blue-700'
                 }`}
               >
                 {altDeltaTag} {intruderVsArrow}
@@ -156,18 +156,18 @@ export const CockpitDisplay: React.FC<Props> = ({ ownship, intruder, conflict })
         </div>
 
         {/* Right: TCAS Vertical Speed Indicator (VSI) */}
-        <div className="flex flex-col items-center justify-center p-3 bg-slate-950 rounded-xl border border-slate-800">
+        <div className="flex flex-col items-center justify-center p-3 bg-neutral-950 rounded-xl border border-neutral-800">
           <div className="text-[10px] font-mono font-bold text-slate-300 mb-1 flex items-center gap-1">
-            <Compass className="w-3.5 h-3.5 text-cyan-400" />
+            <Compass className="w-3.5 h-3.5 text-blue-400" />
             <span>TCAS Vertical Speed Indicator</span>
           </div>
 
           {/* Round VSI Dial */}
-          <div className="relative w-[180px] h-[180px] rounded-full bg-black border-2 border-slate-700 flex items-center justify-center shadow-inner">
+          <div className="relative w-[180px] h-[180px] rounded-full bg-black border-2 border-blue-900/60 flex items-center justify-center shadow-inner">
             <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 180 180">
               {/* Dial tick marks */}
               <g stroke="#475569" strokeWidth="1.5">
-                <line x1="90" y1="12" x2="90" y2="26" stroke="#f1f5f9" strokeWidth="2.5" />
+                <line x1="90" y1="12" x2="90" y2="26" stroke="#ffffff" strokeWidth="2.5" />
                 <line x1="132" y1="24" x2="125" y2="35" />
                 <line x1="162" y1="55" x2="151" y2="62" />
                 <line x1="168" y1="102" x2="155" y2="98" />
@@ -234,7 +234,7 @@ export const CockpitDisplay: React.FC<Props> = ({ ownship, intruder, conflict })
 
             {/* VSI Needle */}
             <div
-              className="absolute w-1.5 h-[70px] bg-cyan-400 origin-bottom rounded-t transition-transform duration-200 shadow-md"
+              className="absolute w-1.5 h-[70px] bg-blue-500 origin-bottom rounded-t transition-transform duration-200 shadow-md"
               style={{
                 bottom: '90px',
                 transform: `rotate(${needleAngleDeg}deg)`,
@@ -266,8 +266,8 @@ export const CockpitDisplay: React.FC<Props> = ({ ownship, intruder, conflict })
           isRA
             ? 'bg-red-950/60 border-red-500 text-red-200'
             : isTA
-            ? 'bg-amber-950/60 border-amber-500 text-amber-200'
-            : 'bg-slate-950 border-slate-800 text-slate-300'
+            ? 'bg-blue-950/60 border-blue-500 text-blue-200'
+            : 'bg-neutral-950 border-blue-900/40 text-slate-300'
         }`}
       >
         <div className="flex items-center gap-2">

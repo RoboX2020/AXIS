@@ -28,10 +28,10 @@ export const ConflictResolutionModal: React.FC<Props> = ({
   const isRA = conflict.tcasStatus === 'RESOLUTION_ADVISORY' || conflict.isWithinEmergencyRange;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
       <div
-        className={`w-full max-w-2xl bg-slate-900 border rounded-2xl shadow-2xl overflow-hidden ${
-          isRA ? 'border-red-500 ring-4 ring-red-500/30' : 'border-amber-500 ring-4 ring-amber-500/30'
+        className={`w-full max-w-2xl bg-black border-2 rounded-2xl shadow-2xl overflow-hidden ${
+          isRA ? 'border-red-500 ring-4 ring-red-500/40' : 'border-blue-500 ring-4 ring-blue-500/40'
         }`}
       >
         {/* Top Warning Header with 12 NM Emergency Prompt Mention */}
@@ -39,12 +39,12 @@ export const ConflictResolutionModal: React.FC<Props> = ({
           className={`p-4 flex items-center justify-between text-white ${
             isRA
               ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700'
-              : 'bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-700 text-slate-950'
+              : 'bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700'
           }`}
         >
           <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-xl ${isRA ? 'bg-red-950/60' : 'bg-amber-950/40'}`}>
-              <AlertOctagon className="w-7 h-7 animate-pulse" />
+            <div className={`p-2.5 rounded-xl ${isRA ? 'bg-red-950/60' : 'bg-blue-950/40'}`}>
+              <AlertOctagon className="w-7 h-7" />
             </div>
             <div>
               <div className="text-xs font-mono font-black tracking-widest uppercase opacity-95">
@@ -56,35 +56,35 @@ export const ConflictResolutionModal: React.FC<Props> = ({
             </div>
           </div>
 
-          <div className="text-right font-mono bg-black/40 px-3 py-1.5 rounded-xl border border-white/20">
+          <div className="text-right font-mono bg-black/50 px-3 py-1.5 rounded-xl border border-white/20">
             <div className="text-[10px] font-bold opacity-80">TIME TO CPA</div>
             <div className="text-xl font-black">{conflict.timeToCPASec}s</div>
           </div>
         </div>
 
         {/* Conflict Parameters & Situation Summary */}
-        <div className="p-4 bg-slate-950/90 border-b border-slate-800 text-xs font-mono text-slate-300 grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="p-2.5 bg-slate-900 rounded-xl border border-red-500/40">
+        <div className="p-4 bg-neutral-950 border-b border-neutral-800 text-xs font-mono text-slate-300 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="p-2.5 bg-black rounded-xl border border-red-500/40">
             <div className="text-slate-400 text-[10px] font-bold">EMERGENCY RANGE</div>
             <div className="text-base font-black text-red-400">{conflict.distanceNM.toFixed(2)} NM</div>
             <div className="text-[10px] text-red-300 font-semibold">&le; 12.0 NM Threshold</div>
           </div>
 
-          <div className="p-2.5 bg-slate-900 rounded-xl border border-slate-800">
+          <div className="p-2.5 bg-black rounded-xl border border-neutral-800">
             <div className="text-slate-400 text-[10px] font-bold">PREDICTED CPA DIST</div>
-            <div className="text-base font-black text-red-400">{conflict.distanceAtCPANM} NM</div>
+            <div className="text-base font-black text-white">{conflict.distanceAtCPANM} NM</div>
             <div className="text-[10px] text-slate-400">Min safe: 1.5 NM</div>
           </div>
 
-          <div className="p-2.5 bg-slate-900 rounded-xl border border-slate-800">
+          <div className="p-2.5 bg-black rounded-xl border border-neutral-800">
             <div className="text-slate-400 text-[10px] font-bold">VERTICAL DELTA</div>
-            <div className="text-base font-black text-amber-400">{Math.round(conflict.verticalDeltaFt)} FT</div>
+            <div className="text-base font-black text-blue-400">{Math.round(conflict.verticalDeltaFt)} FT</div>
             <div className="text-[10px] text-slate-400">At CPA: {conflict.verticalSepAtCPAFt} FT</div>
           </div>
 
-          <div className="p-2.5 bg-slate-900 rounded-xl border border-slate-800">
+          <div className="p-2.5 bg-black rounded-xl border border-neutral-800">
             <div className="text-slate-400 text-[10px] font-bold">MODIFIED TAU (&tau;)</div>
-            <div className="text-base font-black text-cyan-400">{conflict.horizontalTauSec}s</div>
+            <div className="text-base font-black text-white">{conflict.horizontalTauSec}s</div>
             <div className="text-[10px] text-slate-400">Closure: {Math.round(conflict.rangeRateKnots)} KT</div>
           </div>
         </div>
@@ -92,7 +92,7 @@ export const ConflictResolutionModal: React.FC<Props> = ({
         {/* Prompt Statement */}
         <div className="px-5 pt-4 pb-2">
           <p className="text-xs text-slate-200 font-medium">
-            Select a resolution maneuver. The system will execute coordinated TCAS / FLARM vector adjustments on the <strong className="text-cyan-300">Z-axis (one climbs, one dives)</strong>, immediately eliminate discarded candidates on the <strong className="text-cyan-400">2D Tactical Airspace Map</strong>, lock the chosen path in a <strong className="text-emerald-400 underline font-bold">bold solid line</strong>, and render the executed route in the 3D visualizer:
+            Select a resolution maneuver. The system will execute coordinated TCAS / FLARM vector adjustments on the <strong className="text-blue-400">Z-axis (one climbs, one dives)</strong>, immediately eliminate discarded candidates on the <strong className="text-blue-400">2D Tactical Airspace Map</strong>, lock the chosen path in a <strong className="text-white underline font-bold">bold solid line</strong>, and render the executed route in the 3D visualizer:
           </p>
         </div>
 
@@ -103,14 +103,14 @@ export const ConflictResolutionModal: React.FC<Props> = ({
               key={opt.id}
               className={`p-3.5 rounded-xl border transition-all text-left flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
                 opt.isBestRecommendation
-                  ? 'bg-cyan-950/40 border-cyan-400 hover:bg-cyan-950/60 shadow-lg'
-                  : 'bg-slate-800/60 border-slate-700 hover:bg-slate-800 hover:border-slate-500'
+                  ? 'bg-blue-950/40 border-blue-500 hover:bg-blue-950/60 shadow-lg'
+                  : 'bg-neutral-900 border-neutral-800 hover:bg-neutral-850 hover:border-neutral-700'
               }`}
             >
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   {opt.isBestRecommendation && (
-                    <span className="text-[10px] font-mono font-bold bg-cyan-500 text-slate-950 px-2 py-0.5 rounded shadow">
+                    <span className="text-[10px] font-mono font-bold bg-blue-600 text-white px-2 py-0.5 rounded shadow">
                       RECOMMENDED RESOLUTION
                     </span>
                   )}
@@ -124,11 +124,11 @@ export const ConflictResolutionModal: React.FC<Props> = ({
                 {/* Projected Separation metrics */}
                 <div className="mt-2 flex items-center gap-3 text-[11px] font-mono text-slate-300">
                   <span>
-                    Proj. Dist: <strong className="text-emerald-400 font-bold">{opt.projectedSeparationNM} NM</strong>
+                    Proj. Dist: <strong className="text-white font-bold">{opt.projectedSeparationNM} NM</strong>
                   </span>
                   <span>·</span>
                   <span>
-                    Proj. Alt Sep: <strong className="text-emerald-400 font-bold">{opt.projectedSeparationFt} FT</strong>
+                    Proj. Alt Sep: <strong className="text-white font-bold">{opt.projectedSeparationFt} FT</strong>
                   </span>
                 </div>
               </div>
@@ -137,8 +137,8 @@ export const ConflictResolutionModal: React.FC<Props> = ({
                 onClick={() => onSelectOption(opt)}
                 className={`px-4 py-2.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shadow-md ${
                   opt.isBestRecommendation
-                    ? 'bg-cyan-400 hover:bg-cyan-300 text-slate-950 ring-2 ring-cyan-400/50'
-                    : 'bg-slate-700 hover:bg-slate-600 text-white'
+                    ? 'bg-blue-600 hover:bg-blue-500 text-white ring-2 ring-blue-400/50'
+                    : 'bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-700'
                 }`}
               >
                 <span>Execute Maneuver</span>
@@ -149,13 +149,13 @@ export const ConflictResolutionModal: React.FC<Props> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between">
+        <div className="p-4 bg-neutral-950 border-t border-neutral-800 flex items-center justify-between">
           <div className="text-[11px] font-mono text-slate-400">
             Emergency Detection Boundary &le; 12.0 NM · ICAO Resolution Modeling
           </div>
           <button
             onClick={onDismiss}
-            className="px-3.5 py-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors font-mono"
+            className="px-3.5 py-1.5 text-xs text-slate-400 hover:text-white transition-colors font-mono"
           >
             Maintain Current Course (Test Collision)
           </button>

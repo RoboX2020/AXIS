@@ -86,11 +86,11 @@ export const AeroVisualizer3D: React.FC<Props> = ({
     const width = container.clientWidth;
     const height = container.clientHeight;
 
-    // Scene
+    // Scene - Brightened for crisp high-visibility daylight tactical airspace
     const scene = new THREE.Scene();
     sceneRef.current = scene;
-    scene.background = new THREE.Color(0x040814); // Deep aeronautical night blue
-    scene.fog = new THREE.FogExp2(0x040814, 0.012);
+    scene.background = new THREE.Color(0x0f2744); // Crisp high-visibility aeronautical sky
+    scene.fog = new THREE.FogExp2(0x0f2744, 0.0035); // Very light fog for distant depth, maximum visual clarity
 
     // Camera
     const camera = new THREE.PerspectiveCamera(46, width / height, 0.5, 600);
@@ -107,23 +107,26 @@ export const AeroVisualizer3D: React.FC<Props> = ({
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.35; // Bright, vivid exposure
     rendererRef.current = renderer;
 
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xdbeafe, 0.95);
+    // High-Visibility Daylight Tactical Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
     scene.add(ambientLight);
 
-    const sunLight = new THREE.DirectionalLight(0xffffff, 1.8);
-    sunLight.position.set(35, 70, 45);
+    const sunLight = new THREE.DirectionalLight(0xffffff, 2.5);
+    sunLight.position.set(40, 80, 50);
     scene.add(sunLight);
 
-    const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.9);
-    rimLight.position.set(-35, 25, -35);
+    const hemiLight = new THREE.HemisphereLight(0xdbeafe, 0x1e3a8a, 1.4);
+    scene.add(hemiLight);
+
+    const rimLight = new THREE.DirectionalLight(0x60a5fa, 1.2);
+    rimLight.position.set(-35, 30, -35);
     scene.add(rimLight);
 
-    // Tactical Ground Holographic Grid
-    const groundGrid = new THREE.GridHelper(60, 60, 0x0284c7, 0x172554);
+    // Tactical Ground Holographic Grid - Electric Blue & White
+    const groundGrid = new THREE.GridHelper(60, 60, 0x3b82f6, 0x1d4ed8);
     groundGrid.position.y = 0;
     scene.add(groundGrid);
 
@@ -134,7 +137,7 @@ export const AeroVisualizer3D: React.FC<Props> = ({
       color: 0xef4444, // Red emergency boundary
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.75,
+      opacity: 0.85,
     });
     const emergencyRing = new THREE.Mesh(emergencyRingGeo, emergencyRingMat);
     emergencyRing.position.y = 0.03;
@@ -146,7 +149,7 @@ export const AeroVisualizer3D: React.FC<Props> = ({
     const fenceMat = new THREE.MeshBasicMaterial({
       color: 0xef4444,
       transparent: true,
-      opacity: 0.05,
+      opacity: 0.06,
       side: THREE.DoubleSide,
       wireframe: true,
     });
@@ -159,7 +162,7 @@ export const AeroVisualizer3D: React.FC<Props> = ({
       const ringGeo = new THREE.RingGeometry(r - 0.04, r + 0.04, 72);
       ringGeo.rotateX(-Math.PI / 2);
       const ringMat = new THREE.MeshBasicMaterial({
-        color: 0x1e3a5f,
+        color: 0x2563eb,
         side: THREE.DoubleSide,
       });
       const ringMesh = new THREE.Mesh(ringGeo, ringMat);
@@ -172,40 +175,40 @@ export const AeroVisualizer3D: React.FC<Props> = ({
     runwayGeo.rotateX(-Math.PI / 2);
     const runwayMat = new THREE.MeshStandardMaterial({
       color: 0x0f172a,
-      roughness: 0.85,
+      roughness: 0.7,
     });
     const runway = new THREE.Mesh(runwayGeo, runwayMat);
     runway.position.set(0, 0.04, 0);
     scene.add(runway);
 
-    const centerLineGeo = new THREE.PlaneGeometry(0.1, 8.5);
+    const centerLineGeo = new THREE.PlaneGeometry(0.12, 8.5);
     centerLineGeo.rotateX(-Math.PI / 2);
-    const centerLineMat = new THREE.MeshBasicMaterial({ color: 0x94a3b8 });
+    const centerLineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
     const centerLine = new THREE.Mesh(centerLineGeo, centerLineMat);
     centerLine.position.set(0, 0.05, 0);
     scene.add(centerLine);
 
-    // Build Plane A (Cyan / Electric Blue)
-    const { group: meshA, rightExhaust: exA1, leftExhaust: exA2 } = createAircraftMesh(0x06b6d4, 0x0284c7);
+    // Build Plane A (Electric Cobalt Blue & Bright White)
+    const { group: meshA, rightExhaust: exA1, leftExhaust: exA2 } = createAircraftMesh(0x2563eb, 0x1d4ed8);
     scene.add(meshA);
     planeAGroup.current = meshA;
     engineGlowA1.current = exA1;
     engineGlowA2.current = exA2;
 
-    // Build Plane B (Amber / Orange)
-    const { group: meshB, rightExhaust: exB1, leftExhaust: exB2 } = createAircraftMesh(0xf59e0b, 0xd97706);
+    // Build Plane B (Pure Crisp Titanium White with Sapphire Winglets)
+    const { group: meshB, rightExhaust: exB1, leftExhaust: exB2 } = createAircraftMesh(0xffffff, 0x3b82f6);
     scene.add(meshB);
     planeBGroup.current = meshB;
     engineGlowB1.current = exB1;
     engineGlowB2.current = exB2;
 
     // Floating 3D HUD Sprites above aircraft
-    const spriteA = createTextSprite('UAL842 · FL320', '#22d3ee', 'rgba(8, 20, 40, 0.9)');
+    const spriteA = createTextSprite('UAL842 · FL140', '#60a5fa', 'rgba(0, 0, 0, 0.92)');
     spriteA.position.y = 2.4;
     meshA.add(spriteA);
     tagA.current = spriteA;
 
-    const spriteB = createTextSprite('DLH419 · FL320', '#fbbf24', 'rgba(40, 25, 8, 0.9)');
+    const spriteB = createTextSprite('DLH419 · FL140', '#ffffff', 'rgba(0, 0, 0, 0.92)');
     spriteB.position.y = 2.4;
     meshB.add(spriteB);
     tagB.current = spriteB;
@@ -213,25 +216,25 @@ export const AeroVisualizer3D: React.FC<Props> = ({
     // Ground Shadows & Drop Rings
     const shadowGeo = new THREE.RingGeometry(0.4, 0.8, 24);
     shadowGeo.rotateX(-Math.PI / 2);
-    const shadowMatA = new THREE.MeshBasicMaterial({ color: 0x06b6d4, transparent: true, opacity: 0.4 });
+    const shadowMatA = new THREE.MeshBasicMaterial({ color: 0x2563eb, transparent: true, opacity: 0.5 });
     const shadowA = new THREE.Mesh(shadowGeo, shadowMatA);
     shadowA.position.y = 0.03;
     scene.add(shadowA);
     planeAShadow.current = shadowA;
 
-    const shadowMatB = new THREE.MeshBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.4 });
+    const shadowMatB = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
     const shadowB = new THREE.Mesh(shadowGeo, shadowMatB);
     shadowB.position.y = 0.03;
     scene.add(shadowB);
     planeBShadow.current = shadowB;
 
     // Altitude Drop Lines (connecting aircraft to ground)
-    const lineMatA = new THREE.LineBasicMaterial({ color: 0x06b6d4, transparent: true, opacity: 0.65 });
+    const lineMatA = new THREE.LineBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.75 });
     const dropLineA = new THREE.Line(new THREE.BufferGeometry(), lineMatA);
     scene.add(dropLineA);
     planeADropLine.current = dropLineA;
 
-    const lineMatB = new THREE.LineBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.65 });
+    const lineMatB = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.75 });
     const dropLineB = new THREE.Line(new THREE.BufferGeometry(), lineMatB);
     scene.add(dropLineB);
     planeBDropLine.current = dropLineB;
@@ -675,13 +678,13 @@ export const AeroVisualizer3D: React.FC<Props> = ({
       {/* Cockpit HUD Reticle Overlay if in COCKPIT_A view */}
       {viewMode === 'COCKPIT_A' && (
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-          <div className="w-48 h-48 border border-cyan-400/40 rounded-full flex items-center justify-center">
-            <div className="w-16 h-[1px] bg-cyan-400/70" />
-            <div className="h-16 w-[1px] bg-cyan-400/70" />
-            <div className="absolute top-2 text-[10px] font-mono text-cyan-300">HUD GUNSIGHT / INTRUDER TRACK</div>
+          <div className="w-48 h-48 border border-blue-400/50 rounded-full flex items-center justify-center">
+            <div className="w-16 h-[1px] bg-blue-400/70" />
+            <div className="h-16 w-[1px] bg-blue-400/70" />
+            <div className="absolute top-2 text-[10px] font-mono text-blue-300 font-bold">HUD GUNSIGHT / INTRUDER TRACK</div>
           </div>
-          <div className="absolute top-12 left-12 text-xs font-mono text-cyan-300 bg-slate-950/80 p-2 rounded border border-cyan-500/50">
-            <div>SPD: {Math.round(planeA.speed)} KT</div>
+          <div className="absolute top-12 left-12 text-xs font-mono text-white bg-black/90 p-2.5 rounded-lg border border-blue-500/50 shadow-xl">
+            <div className="text-blue-400 font-bold">SPD: {Math.round(planeA.speed)} KT</div>
             <div>ALT: {planeA.position.z.toLocaleString()} FT</div>
             <div>HDG: {Math.round(planeA.heading)}°</div>
           </div>
@@ -691,85 +694,70 @@ export const AeroVisualizer3D: React.FC<Props> = ({
       {/* Top Left: 3D Viewport Header & 12 NM Callout */}
       <div className="absolute top-3 left-3 flex flex-col gap-1 pointer-events-none z-10">
         <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shadow-md shadow-cyan-400/50" />
-          <span className="text-xs font-mono uppercase tracking-wider text-slate-100 font-bold">
-            3D Spatial Trajectory Visualizer
+          <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-md shadow-blue-500/50" />
+          <span className="text-xs font-mono uppercase tracking-wider text-white font-bold">
+            3D Spatial Visualizer (High-Visibility Daylight)
           </span>
-          <span className="text-[10px] font-mono font-bold text-red-300 bg-red-950/80 border border-red-700/80 px-2 py-0.5 rounded shadow">
-            12 NM EMERGENCY PROMPT BOUNDARY
+          <span className="text-[10px] font-mono font-bold text-white bg-blue-950/80 border border-blue-600/80 px-2 py-0.5 rounded shadow">
+            12 NM ENVELOPE
           </span>
         </div>
         <div className="text-[11px] font-mono text-slate-300">
-          Range: {conflict.distanceNM.toFixed(2)} NM · Closure: {Math.round(conflict.rangeRateKnots)} KT
+          Range: <span className="text-white font-bold">{conflict.distanceNM.toFixed(2)} NM</span> · Closure: <span className="text-white font-bold">{Math.round(conflict.rangeRateKnots)} KT</span>
         </div>
       </div>
 
       {/* Top Right: Trajectory Legend */}
-      <div className="absolute top-3 right-3 bg-slate-950/90 backdrop-blur-md border border-slate-700/90 rounded-lg p-2.5 text-xs font-mono text-slate-200 pointer-events-auto flex flex-col gap-1.5 shadow-xl max-w-[250px] z-10">
-        <div className="text-[10px] uppercase text-cyan-400 tracking-wider font-bold border-b border-slate-800 pb-1">
-          Trajectory &amp; Alert Legend
+      <div className="absolute top-3 right-3 bg-black/90 backdrop-blur-md border border-blue-900/60 rounded-xl p-2.5 text-xs font-mono text-white pointer-events-auto flex flex-col gap-1.5 shadow-2xl max-w-[250px] z-10">
+        <div className="text-[10px] uppercase text-blue-400 tracking-wider font-black border-b border-white/10 pb-1">
+          AXIS 3D Visual Legend
         </div>
         <div className="flex items-center gap-2 text-[11px]">
-          <span className="w-5 h-0 border-t-2 border-dashed border-cyan-400" />
-          <span>Predicted Path (Dotted)</span>
+          <span className="w-5 h-0 border-t-2 border-dashed border-blue-400" />
+          <span>Flight Alpha Path (Blue)</span>
         </div>
         <div className="flex items-center gap-2 text-[11px]">
-          <span className="w-5 h-0.5 bg-slate-100 rounded" />
-          <span className="text-slate-100 font-semibold">Decided Route (Solid Grey)</span>
+          <span className="w-5 h-0 border-t-2 border-dashed border-white" />
+          <span className="text-white">Flight Bravo Path (White)</span>
         </div>
         <div className="flex items-center gap-2 text-[11px]">
-          <span className="w-3.5 h-3.5 rounded-full border border-red-500 bg-red-500/30" />
-          <span className="text-red-300">12 NM Emergency Envelope</span>
+          <span className="w-5 h-0.5 bg-white rounded shadow-[0_0_8px_#ffffff]" />
+          <span className="text-white font-bold">Decided Route (Solid)</span>
         </div>
       </div>
 
-      {/* Center Top: Flashing Conflict Alert Banner */}
-      {conflict.tcasStatus === 'RESOLUTION_ADVISORY' && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white font-mono font-bold text-xs uppercase px-5 py-2 rounded-full shadow-2xl border-2 border-white flex items-center gap-2.5 animate-bounce pointer-events-none z-20">
-          <span className="w-3 h-3 rounded-full bg-white animate-ping" />
-          <span>{conflict.alertMessage}</span>
-        </div>
-      )}
-
-      {conflict.tcasStatus === 'TRAFFIC_ADVISORY' && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-slate-950 font-mono font-bold text-xs uppercase px-5 py-2 rounded-full shadow-xl border border-amber-200 flex items-center gap-2 pointer-events-none z-20">
-          <span className="w-2.5 h-2.5 rounded-full bg-slate-950" />
-          <span>{conflict.alertMessage}</span>
-        </div>
-      )}
-
       {/* Floating 3D Aircraft Altitude Overlays */}
-      <div className="absolute bottom-16 left-3 flex flex-col gap-1.5 bg-slate-950/90 backdrop-blur-md border border-slate-700/80 p-3 rounded-xl text-xs font-mono shadow-2xl z-10">
-        <div className="flex items-center justify-between gap-4 text-cyan-300">
+      <div className="absolute bottom-16 left-3 flex flex-col gap-1.5 bg-black/90 backdrop-blur-md border border-blue-900/60 p-3 rounded-xl text-xs font-mono shadow-2xl z-10">
+        <div className="flex items-center justify-between gap-4 text-blue-400">
           <div className="flex items-center gap-1.5 font-bold">
-            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
             <span>{planeA.callsign}:</span>
           </div>
-          <span className="text-slate-100 font-bold">{planeA.position.z.toLocaleString()} FT</span>
+          <span className="text-white font-bold">{planeA.position.z.toLocaleString()} FT</span>
         </div>
-        <div className="flex items-center justify-between gap-4 text-amber-300">
+        <div className="flex items-center justify-between gap-4 text-white">
           <div className="flex items-center gap-1.5 font-bold">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+            <span className="w-2.5 h-2.5 rounded-full bg-white" />
             <span>{planeB.callsign}:</span>
           </div>
-          <span className="text-slate-100 font-bold">{planeB.position.z.toLocaleString()} FT</span>
+          <span className="text-white font-bold">{planeB.position.z.toLocaleString()} FT</span>
         </div>
-        <div className="border-t border-slate-800 pt-1 text-[11px] text-slate-300 flex justify-between font-semibold">
+        <div className="border-t border-white/10 pt-1 text-[11px] text-slate-300 flex justify-between font-semibold">
           <span>Vertical Delta:</span>
-          <span className={conflict.verticalDeltaFt < 500 ? 'text-red-400 font-bold' : 'text-slate-100'}>
+          <span className={conflict.verticalDeltaFt < 500 ? 'text-red-400 font-bold' : 'text-white'}>
             {Math.round(conflict.verticalDeltaFt)} FT
           </span>
         </div>
       </div>
 
       {/* Camera View Mode Controls (Ensuring all camera modes are easily switchable) */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-slate-950/95 backdrop-blur-md p-1.5 rounded-xl border border-slate-700/90 shadow-2xl pointer-events-auto z-10 flex-wrap justify-center">
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/95 backdrop-blur-md p-1.5 rounded-xl border border-blue-900/60 shadow-2xl pointer-events-auto z-10 flex-wrap justify-center">
         <button
           onClick={() => setViewMode('TACTICAL')}
-          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 ${
+          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 ${
             viewMode === 'TACTICAL'
-              ? 'bg-cyan-500 text-slate-950 shadow-md'
-              : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+              : 'text-slate-300 hover:text-white hover:bg-white/10'
           }`}
           title="Free 3D orbit around airspace"
         >
@@ -779,10 +767,10 @@ export const AeroVisualizer3D: React.FC<Props> = ({
 
         <button
           onClick={() => setViewMode('CHASE_A')}
-          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 ${
+          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 ${
             viewMode === 'CHASE_A'
-              ? 'bg-cyan-500 text-slate-950 shadow-md'
-              : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+              : 'text-slate-300 hover:text-white hover:bg-white/10'
           }`}
           title="Follow behind Flight Alpha"
         >
@@ -792,10 +780,10 @@ export const AeroVisualizer3D: React.FC<Props> = ({
 
         <button
           onClick={() => setViewMode('CHASE_B')}
-          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 ${
+          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 ${
             viewMode === 'CHASE_B'
-              ? 'bg-amber-500 text-slate-950 shadow-md'
-              : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              ? 'bg-white text-black shadow-lg font-black'
+              : 'text-slate-300 hover:text-white hover:bg-white/10'
           }`}
           title="Follow behind Flight Bravo"
         >
@@ -805,10 +793,10 @@ export const AeroVisualizer3D: React.FC<Props> = ({
 
         <button
           onClick={() => setViewMode('COCKPIT_A')}
-          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 ${
+          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 ${
             viewMode === 'COCKPIT_A'
-              ? 'bg-emerald-500 text-slate-950 shadow-md'
-              : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+              : 'text-slate-300 hover:text-white hover:bg-white/10'
           }`}
           title="Cockpit windscreen view from Flight Alpha"
         >
@@ -818,10 +806,10 @@ export const AeroVisualizer3D: React.FC<Props> = ({
 
         <button
           onClick={() => setViewMode('INTERCEPT')}
-          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 ${
+          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 ${
             viewMode === 'INTERCEPT'
-              ? 'bg-rose-500 text-white shadow-md'
-              : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+              : 'text-slate-300 hover:text-white hover:bg-white/10'
           }`}
           title="Corridor view of converging paths"
         >
@@ -831,10 +819,10 @@ export const AeroVisualizer3D: React.FC<Props> = ({
 
         <button
           onClick={() => setViewMode('TOP_DOWN')}
-          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 ${
+          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 ${
             viewMode === 'TOP_DOWN'
-              ? 'bg-slate-100 text-slate-950 shadow-md'
-              : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              ? 'bg-white text-black font-black shadow-lg'
+              : 'text-slate-300 hover:text-white hover:bg-white/10'
           }`}
           title="Top-down tactical view"
         >

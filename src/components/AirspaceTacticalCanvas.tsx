@@ -148,8 +148,8 @@ export const AirspaceTacticalCanvas: React.FC<Props> = ({
       const pos = nmToCanvas(plane.position.x, plane.position.y, width, height);
       const headingRad = ((plane.heading - 90) * Math.PI) / 180;
       const isAlpha = plane.id === 'A';
-      const mainColor = isAlpha ? '#22d3ee' : '#fbbf24';
-      const glowColor = isAlpha ? 'rgba(34, 211, 238, 0.35)' : 'rgba(251, 191, 36, 0.35)';
+      const mainColor = isAlpha ? '#3b82f6' : '#ffffff';
+      const glowColor = isAlpha ? 'rgba(59, 130, 246, 0.4)' : 'rgba(255, 255, 255, 0.4)';
 
       // Flight history trail
       if (plane.history.length > 1) {
@@ -159,7 +159,7 @@ export const AirspaceTacticalCanvas: React.FC<Props> = ({
           if (i === 0) ctx.moveTo(cPt.cx, cPt.cy);
           else ctx.lineTo(cPt.cx, cPt.cy);
         });
-        ctx.strokeStyle = isAlpha ? 'rgba(34, 211, 238, 0.5)' : 'rgba(251, 191, 36, 0.5)';
+        ctx.strokeStyle = isAlpha ? 'rgba(59, 130, 246, 0.55)' : 'rgba(255, 255, 255, 0.55)';
         ctx.lineWidth = 2.5;
         ctx.stroke();
       }
@@ -176,11 +176,11 @@ export const AirspaceTacticalCanvas: React.FC<Props> = ({
           });
 
           if (cand.status === 'ELIMINATED') {
-            ctx.strokeStyle = 'rgba(244, 63, 94, 0.75)'; // Dotted Red for eliminated
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)'; // Dotted Red for eliminated
             ctx.lineWidth = 1.5;
             ctx.setLineDash([3, 4]);
           } else {
-            ctx.strokeStyle = cand.color || '#22d3ee'; // Dotted Cyan/Green for viable
+            ctx.strokeStyle = '#60a5fa'; // Dotted Blue for viable
             ctx.lineWidth = 2.0;
             ctx.setLineDash([5, 4]);
           }
@@ -194,8 +194,8 @@ export const AirspaceTacticalCanvas: React.FC<Props> = ({
           if (i === 0) ctx.moveTo(cPt.cx, cPt.cy);
           else ctx.lineTo(cPt.cx, cPt.cy);
         });
-        ctx.strokeStyle = plane.hasResolved && isAlpha ? '#10b981' : mainColor;
-        ctx.lineWidth = plane.hasResolved && isAlpha ? 4 : 2;
+        ctx.strokeStyle = plane.hasResolved && isAlpha ? '#ffffff' : mainColor;
+        ctx.lineWidth = plane.hasResolved && isAlpha ? 5 : 2;
         if (!plane.hasResolved || !isAlpha) {
           ctx.setLineDash([4, 4]);
         }
@@ -211,8 +211,8 @@ export const AirspaceTacticalCanvas: React.FC<Props> = ({
           if (i === 0) ctx.moveTo(cPt.cx, cPt.cy);
           else ctx.lineTo(cPt.cx, cPt.cy);
         });
-        ctx.strokeStyle = '#10b981'; // Bold solid emerald line
-        ctx.lineWidth = 4.5;
+        ctx.strokeStyle = '#ffffff'; // Bold solid white line
+        ctx.lineWidth = 5.0;
         ctx.stroke();
       }
 
@@ -408,18 +408,27 @@ export const AirspaceTacticalCanvas: React.FC<Props> = ({
   const currentUpdateFn = selectedPlane === 'A' ? onChangePlaneA : onChangePlaneB;
 
   return (
-    <div className="bg-slate-900 border border-slate-700/80 rounded-xl p-4 flex flex-col h-full shadow-xl">
+    <div className={`bg-black rounded-xl p-4 flex flex-col h-full shadow-2xl transition-all duration-300 ${
+      tcasStatus === 'RESOLUTION_ADVISORY'
+        ? 'border-2 border-red-500 shadow-[0_0_35px_rgba(239,68,68,0.3)]'
+        : 'border border-blue-900/60'
+    }`}>
       {/* Header & Scenario Selection */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-3 border-b border-slate-800 pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3 border-b border-blue-900/40 pb-3">
         <div>
-          <div className="text-xs font-mono uppercase tracking-wider text-cyan-400 font-bold">
+          <div className="text-xs font-mono uppercase tracking-wider text-blue-400 font-bold">
             Tactical Airspace Map
           </div>
-          <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
+          <h2 className="text-base font-bold text-white flex items-center gap-2">
             <span>2D Airspace &amp; Route Configurator</span>
             {isSimulating && (
-              <span className="text-xs font-mono text-cyan-300 bg-cyan-950 border border-cyan-700 px-2 py-0.5 rounded font-bold animate-pulse">
+              <span className="text-xs font-mono text-blue-300 bg-blue-950 border border-blue-600 px-2 py-0.5 rounded font-bold">
                 SIMULATION LIVE
+              </span>
+            )}
+            {tcasStatus === 'RESOLUTION_ADVISORY' && (
+              <span className="text-xs font-mono text-red-300 bg-red-950 border border-red-500 px-2 py-0.5 rounded font-bold animate-pulse">
+                ⚠ RA ALERT
               </span>
             )}
           </h2>
@@ -435,7 +444,7 @@ export const AirspaceTacticalCanvas: React.FC<Props> = ({
               if (sc) onLoadScenario(sc);
             }}
             disabled={isSimulating}
-            className="bg-slate-950 border border-slate-600 text-xs font-semibold text-slate-100 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-50"
+            className="bg-neutral-950 border border-neutral-700 text-xs font-semibold text-white rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
           >
             {SCENARIO_PRESETS.map((sc) => (
               <option key={sc.id} value={sc.id}>
@@ -447,7 +456,7 @@ export const AirspaceTacticalCanvas: React.FC<Props> = ({
       </div>
 
       {/* Main Interactive Radar Area */}
-      <div className="relative flex-1 min-h-[350px] flex items-center justify-center bg-black/60 rounded-xl overflow-hidden border border-slate-800">
+      <div className="relative flex-1 min-h-[350px] flex items-center justify-center bg-black rounded-xl overflow-hidden border border-blue-950">
         <canvas
           ref={canvasRef}
           width={580}
@@ -461,59 +470,59 @@ export const AirspaceTacticalCanvas: React.FC<Props> = ({
         />
 
         {/* Floating Instruction / Status Overlay */}
-        <div className="absolute top-2.5 left-2.5 bg-slate-950/90 backdrop-blur-md border border-slate-700 rounded-lg px-3 py-1.5 text-xs font-mono text-slate-200 pointer-events-none shadow-lg">
+        <div className="absolute top-2.5 left-2.5 bg-black/90 backdrop-blur-md border border-blue-900/60 rounded-lg px-3 py-1.5 text-xs font-mono text-white pointer-events-none shadow-lg">
           {!isSimulating ? (
             <div>
-              <span className="text-cyan-300 font-bold">● Drag plane</span> to position ·{' '}
-              <span className="text-amber-300 font-bold">● Drag arrow</span> for heading
+              <span className="text-blue-400 font-bold">● Drag plane</span> to position ·{' '}
+              <span className="text-white font-bold">● Drag arrow</span> for heading
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-cyan-300 font-bold">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+            <div className="flex items-center gap-2 text-blue-300 font-bold">
+              <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
               Tracking ADS-B live transponders
             </div>
           )}
         </div>
 
         {/* 12 NM Emergency Prompt Range callout tag */}
-        <div className="absolute top-2.5 right-2.5 bg-red-950/90 border border-red-600/80 rounded-lg px-2.5 py-1 text-[11px] font-mono text-red-200 pointer-events-none shadow">
+        <div className="absolute top-2.5 right-2.5 bg-blue-950/90 border border-blue-600/80 rounded-lg px-2.5 py-1 text-[11px] font-mono text-blue-200 pointer-events-none shadow">
           12 NM Emergency Prompt Active
         </div>
 
         {/* Plane Selector Tabs on Radar */}
-        <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 bg-slate-950/90 backdrop-blur-md p-1.5 rounded-xl border border-slate-700 shadow-xl">
+        <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 bg-black/90 backdrop-blur-md p-1.5 rounded-xl border border-blue-900/60 shadow-xl">
           <button
             onClick={() => setSelectedPlane('A')}
             className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
               selectedPlane === 'A'
-                ? 'bg-cyan-500 text-slate-950 shadow-md'
+                ? 'bg-blue-600 text-white shadow-md'
                 : 'text-slate-300 hover:text-white'
             }`}
           >
-            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-400" />
             Flight A ({planeA.callsign})
           </button>
           <button
             onClick={() => setSelectedPlane('B')}
             className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
               selectedPlane === 'B'
-                ? 'bg-amber-500 text-slate-950 shadow-md'
+                ? 'bg-white text-black font-black shadow-md'
                 : 'text-slate-300 hover:text-white'
             }`}
           >
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+            <span className="w-2.5 h-2.5 rounded-full bg-white border border-black" />
             Flight B ({planeB.callsign})
           </button>
         </div>
       </div>
 
       {/* Selected Aircraft Control Sliders */}
-      <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-slate-950/80 rounded-xl border border-slate-800 text-xs">
+      <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-neutral-950 rounded-xl border border-neutral-800 text-xs">
         {/* Heading */}
         <div className="flex flex-col gap-1.5">
           <div className="flex justify-between text-slate-300 font-mono font-bold">
             <span>Heading:</span>
-            <span className="text-cyan-400">{Math.round(currentPlane.heading)}°</span>
+            <span className="text-blue-400">{Math.round(currentPlane.heading)}°</span>
           </div>
           <input
             type="range"
@@ -525,7 +534,7 @@ export const AirspaceTacticalCanvas: React.FC<Props> = ({
               const val = Number(e.target.value);
               currentUpdateFn({ heading: val, initialHeading: val });
             }}
-            className="accent-cyan-400 h-2 bg-slate-800 rounded-lg cursor-pointer disabled:opacity-40"
+            className="accent-blue-500 h-2 bg-neutral-800 rounded-lg cursor-pointer disabled:opacity-40"
           />
         </div>
 
@@ -533,7 +542,7 @@ export const AirspaceTacticalCanvas: React.FC<Props> = ({
         <div className="flex flex-col gap-1.5">
           <div className="flex justify-between text-slate-300 font-mono font-bold">
             <span>Altitude:</span>
-            <span className="text-cyan-400">{currentPlane.position.z.toLocaleString()} FT</span>
+            <span className="text-blue-400">{currentPlane.position.z.toLocaleString()} FT</span>
           </div>
           <input
             type="range"
@@ -549,7 +558,7 @@ export const AirspaceTacticalCanvas: React.FC<Props> = ({
                 startPosition: { ...currentPlane.startPosition, z: val },
               });
             }}
-            className="accent-cyan-400 h-2 bg-slate-800 rounded-lg cursor-pointer disabled:opacity-40"
+            className="accent-blue-500 h-2 bg-neutral-800 rounded-lg cursor-pointer disabled:opacity-40"
           />
         </div>
 
@@ -557,7 +566,7 @@ export const AirspaceTacticalCanvas: React.FC<Props> = ({
         <div className="flex flex-col gap-1.5">
           <div className="flex justify-between text-slate-300 font-mono font-bold">
             <span>Ground Speed:</span>
-            <span className="text-cyan-400">{Math.round(currentPlane.speed)} KT</span>
+            <span className="text-blue-400">{Math.round(currentPlane.speed)} KT</span>
           </div>
           <input
             type="range"
@@ -570,7 +579,7 @@ export const AirspaceTacticalCanvas: React.FC<Props> = ({
               const val = Number(e.target.value);
               currentUpdateFn({ speed: val, initialSpeed: val });
             }}
-            className="accent-cyan-400 h-2 bg-slate-800 rounded-lg cursor-pointer disabled:opacity-40"
+            className="accent-blue-500 h-2 bg-neutral-800 rounded-lg cursor-pointer disabled:opacity-40"
           />
         </div>
 
@@ -581,10 +590,10 @@ export const AirspaceTacticalCanvas: React.FC<Props> = ({
             <span
               className={
                 currentPlane.verticalSpeed > 0
-                  ? 'text-emerald-400'
+                  ? 'text-blue-400 font-bold'
                   : currentPlane.verticalSpeed < 0
-                  ? 'text-rose-400'
-                  : 'text-slate-100'
+                  ? 'text-red-400 font-bold'
+                  : 'text-white font-bold'
               }
             >
               {currentPlane.verticalSpeed > 0 ? '+' : ''}
@@ -602,7 +611,7 @@ export const AirspaceTacticalCanvas: React.FC<Props> = ({
               const val = Number(e.target.value);
               currentUpdateFn({ verticalSpeed: val, initialVerticalSpeed: val });
             }}
-            className="accent-cyan-400 h-2 bg-slate-800 rounded-lg cursor-pointer disabled:opacity-40"
+            className="accent-blue-500 h-2 bg-neutral-800 rounded-lg cursor-pointer disabled:opacity-40"
           />
         </div>
       </div>
