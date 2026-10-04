@@ -8,20 +8,68 @@ type Pick = 'A' | 'B';
 
 function makeJet(color: string) {
   const g = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.35, roughness: 0.5 });
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.045, 0.6, 12), mat);
-  body.rotation.x = Math.PI / 2;
-  g.add(body);
-  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.14, 12), mat);
-  nose.rotation.x = -Math.PI / 2; nose.position.z = -0.37;
-  g.add(nose);
-  const wing = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.012, 0.16), mat);
-  wing.position.z = 0.02; g.add(wing);
-  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.15, 0.1), mat);
-  tail.position.set(0, 0.07, 0.26); g.add(tail);
-  const stab = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.01, 0.07), mat);
-  stab.position.z = 0.26; g.add(stab);
+  const white = new THREE.MeshStandardMaterial({ color: '#f4f6f8', roughness: 0.35, metalness: 0.2 });
+  const accent = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.5, roughness: 0.5 });
+  const dark = new THREE.MeshStandardMaterial({ color: '#2b3340', roughness: 0.6 });
+  // Fuselage: lathe profile (radius by length), nose toward -z
+  const prof: THREE.Vector2[] = [];
+  const pts: [number, number][] = [[0, 0], [0.025, 0.02], [0.04, 0.07], [0.05, 0.15], [0.052, 0.3], [0.052, 0.62], [0.046, 0.8], [0.03, 0.92], [0.012, 0.99], [0, 1]];
+  for (const [r, t] of pts) prof.push(new THREE.Vector2(r, t));
+  const fus = new THREE.Mesh(new THREE.LatheGeometry(prof, 16), white);
+  fus.rotation.x = Math.PI / 2; // lathe +y -> +z, so t=0 (nose) sits at -z
+  fus.position.z = -0.5;
+  g.add(fus);
+  // Cockpit windows + cabin stripe
+  const cockpit = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.02, 0.05), dark);
+  cockpit.position.set(0, 0.03, -0.37); g.add(cockpit);
+  const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.0535, 0.0535, 0.04, 16, 1, true), accent);
+  stripe.rotation.x = Math.PI / 2; stripe.position.set(0, 0, -0.1); g.add(stripe);
+  // Swept wings
+  const wingShape = new THREE.Shape();
+  wingShape.moveTo(0, 0); wingShape.lineTo(0.5, 0.3); wingShape.lineTo(0.5, 0.4); wingShape.lineTo(0, 0.2); wingShape.closePath();
+  const wingGeo = new THREE.ExtrudeGeometry(wingShape, { depth: 0.012, bevelEnabled: false });
+  wingGeo.rotateX(Math.PI / 2); // lie flat in xz plane
+  const wr = new THREE.Mesh(wingGeo, white); wr.position.set(0.04, -0.01, -0.08); g.add(wr);
+  const wl = new THREE.Mesh(wingGeo, white); wl.scale.x = -1; wl.position.set(-0.04, -0.01, -0.08); g.add(wl);
+  // Wingtip accent
+  for (const sx of [1, -1]) {
+    const tip = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.035, 0.07), accent);
+    tip.position.set(sx * 0.54, 0.02, 0.3 - 0.08); g.add(tip);
+  }
+  // Engines
+  for (const sx of [1, -1]) {
+    const eng = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.026, 0.16, 12), dark);
+    eng.rotation.x = Math.PI / 2; eng.position.set(sx * 0.2, -0.04, 0.0); g.add(eng);
+  }
+  // Tail fin + stabilizers
+  const fin = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.16, 0.14), accent);
+  fin.position.set(0, 0.11, 0.4); fin.rotation.x = -0.35; g.add(fin);
+  for (const sx of [1, -1]) {
+    const st = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.01, 0.07), white);
+    st.position.set(sx * 0.09, 0.0, 0.43); st.rotation.y = sx * 0.4; g.add(st);
+  }
+  // Nav lights: red left, green right, white strobe on tail (blinks)
+  const mk = (c: string, x: number, y: number, z: number) => {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 8), new THREE.MeshBasicMaterial({ color: c }));
+    m.position.set(x, y, z); g.add(m); return m;
+  };
+  mk('#ff2d2d', -0.54, 0.0, 0.15); mk('#22ff66', 0.54, 0.0, 0.15);
+  const strobe = mk('#ffffff', 0, 0.2, 0.44);
+  g.userData.strobe = strobe;
   return g;
+}
+
+function makeLabel(text: string) {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 96;
+  const ctx = c.getContext('2d')!;
+  ctx.clearRect(0, 0, 256, 96);
+  ctx.strokeStyle = '#ff3b30'; ctx.lineWidth = 6;
+  ctx.beginPath(); ctx.arc(48, 48, 34, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(92, 24, 160, 48);
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 30px sans-serif'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 100, 49);
+  const tex = new THREE.CanvasTexture(c);
+  return { canvas: c, ctx, tex };
 }
 
 function angDiff(a: number, b: number) {
@@ -168,9 +216,21 @@ export function PhoneCockpit() {
     const jets: Record<Pick, THREE.Group> = { A: makeJet('#06b6d4'), B: makeJet('#f59e0b') };
     scene.add(jets.A, jets.B);
     // Always-visible marker on the other plane so it can be spotted at 12 NM
-    const markerMat = new THREE.SpriteMaterial({ color: '#ff3b30', transparent: true, opacity: 0.9, depthTest: false });
-    const marker = new THREE.Sprite(markerMat);
+    const lab = makeLabel('');
+    const marker = new THREE.Sprite(new THREE.SpriteMaterial({ map: lab.tex, transparent: true, depthTest: false }));
+    marker.center.set(0.19, 0.5);
+    marker.renderOrder = 10;
     scene.add(marker);
+    // Contrail behind each jet
+    const TRAIL = 90;
+    const trails = {} as Record<Pick, { pts: THREE.Vector3[]; line: THREE.Line }>;
+    for (const id of ['A', 'B'] as Pick[]) {
+      const geo = new THREE.BufferGeometry().setFromPoints(Array.from({ length: TRAIL }, () => new THREE.Vector3()));
+      const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.8 }));
+      line.frustumCulled = false; scene.add(line);
+      trails[id] = { pts: [], line };
+    }
+    let labelAt = 0;
 
     const smooth: Record<Pick, { x: number; y: number; z: number; h: number; p: number; b: number } | null> = { A: null, B: null };
     const target = (p: LivePlane) => ({ x: p.x, y: p.z / FT_PER_NM, z: -p.y, h: p.heading, p: p.pitch, b: p.bank });
@@ -208,6 +268,18 @@ export function PhoneCockpit() {
         j.position.set(c.x, c.y, c.z);
         j.rotation.order = 'YXZ';
         j.rotation.set((c.p * Math.PI) / 180, (-c.h * Math.PI) / 180, (-c.b * Math.PI) / 180);
+        const tr = trails[id];
+        const pos = new THREE.Vector3(c.x, c.y, c.z);
+        const lastPt = tr.pts[tr.pts.length - 1];
+        if (!lastPt || lastPt.distanceTo(pos) > 0.08) { tr.pts.push(pos); if (tr.pts.length > TRAIL) tr.pts.shift(); }
+        const arr = tr.line.geometry.attributes.position as THREE.BufferAttribute;
+        for (let i = 0; i < TRAIL; i++) {
+          const q = tr.pts[Math.min(i, tr.pts.length - 1)] ?? pos;
+          arr.setXYZ(i, q.x, q.y, q.z);
+        }
+        arr.needsUpdate = true;
+        const st = j.userData.strobe as THREE.Mesh | undefined;
+        if (st) st.visible = Math.floor(performance.now() / 500) % 2 === 0;
       }
       const me = pickRef.current!;
       const other: Pick = me === 'A' ? 'B' : 'A';
@@ -236,9 +308,22 @@ export function PhoneCockpit() {
           camera.quaternion.copy(qPlane.multiply(qLook));
         }
         if (o) {
-          marker.position.set(o.x, o.y, o.z);
-          const d = marker.position.distanceTo(camera.position);
-          marker.scale.setScalar(Math.max(0.15, d * 0.035));
+          const d = new THREE.Vector3(o.x, o.y, o.z).distanceTo(camera.position);
+          // Grow the far jet with distance so it stays a clear airliner shape
+          jets[other].scale.setScalar(Math.min(4, Math.max(1, d / 3.5)));
+          marker.position.set(o.x, o.y + 0.06 * jets[other].scale.x, o.z);
+          marker.scale.set(Math.max(0.5, d * 0.1), Math.max(0.19, d * 0.0375), 1);
+          const now = performance.now();
+          if (now - labelAt > 250) {
+            labelAt = now;
+            lab.ctx.clearRect(0, 0, 256, 96);
+            lab.ctx.strokeStyle = '#ff3b30'; lab.ctx.lineWidth = 6;
+            lab.ctx.beginPath(); lab.ctx.arc(48, 48, 34, 0, Math.PI * 2); lab.ctx.stroke();
+            lab.ctx.fillStyle = 'rgba(0,0,0,0.55)'; lab.ctx.fillRect(92, 24, 160, 48);
+            lab.ctx.fillStyle = '#fff'; lab.ctx.font = 'bold 30px sans-serif'; lab.ctx.textBaseline = 'middle';
+            lab.ctx.fillText(d.toFixed(1) + ' NM', 100, 49);
+            lab.tex.needsUpdate = true;
+          }
         }
       }
       renderer.render(scene, camera);
