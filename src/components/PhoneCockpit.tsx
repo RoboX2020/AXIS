@@ -42,6 +42,10 @@ export function PhoneCockpit() {
   const [live, setLive] = useState<LiveState | null>(null);
   const latest = useRef<LiveState | null>(null);
   const pickRef = useRef<Pick | null>(null);
+  const drag = useRef({ yaw: 0, pitch: 0 });
+  const gyro = useRef<{ on: boolean; q: THREE.Quaternion | null; base: number | null }>({ on: false, q: null, base: null });
+  const [gyroOn, setGyroOn] = useState(false);
+  const [gyroMsg, setGyroMsg] = useState('');
   const viewRef = useRef(view);
   pickRef.current = pick;
   viewRef.current = view;
@@ -70,6 +74,66 @@ export function PhoneCockpit() {
   useEffect(() => {
     if (level === 'RESOLUTION' && navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 300]);
   }, [level]);
+
+  // Touch/mouse drag to look around
+  useEffect(() => {
+    const el = mount.current;
+    if (!pick || !el) return;
+    let last: { x: number; y: number } | null = null;
+    const down = (e: PointerEvent) => { last = { x: e.clientX, y: e.clientY }; };
+    const move = (e: PointerEvent) => {
+      if (!last) return;
+      drag.current.yaw -= (e.clientX - last.x) * 0.006;
+      drag.current.pitch = Math.max(-1.5, Math.min(1.5, drag.current.pitch - (e.clientY - last.y) * 0.006));
+      last = { x: e.clientX, y: e.clientY };
+    };
+    const up = () => { last = null; };
+    el.addEventListener('pointerdown', down);
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    return () => {
+      el.removeEventListener('pointerdown', down);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+    };
+  }, [pick]);
+
+  // Gyro look-around (needs a real phone + permission on iOS)
+  useEffect(() => {
+    if (!gyroOn) { gyro.current.on = false; return; }
+    const q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
+    const handler = (e: DeviceOrientationEvent) => {
+      if (e.alpha == null || e.beta == null || e.gamma == null) return;
+      const d = Math.PI / 180;
+      const orient = ((window.screen.orientation?.angle ?? (window as any).orientation ?? 0) as number) * d;
+      const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(e.beta * d, e.alpha * d, -e.gamma * d, 'YXZ'));
+      q.multiply(q1);
+      q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -orient));
+      gyro.current.q = q;
+      gyro.current.on = true;
+    };
+    window.addEventListener('deviceorientation', handler);
+    return () => { window.removeEventListener('deviceorientation', handler); gyro.current.on = false; };
+  }, [gyroOn]);
+
+  const toggleGyro = async () => {
+    if (gyroOn) { setGyroOn(false); setGyroMsg(''); return; }
+    try {
+      const DOE = (window as any).DeviceOrientationEvent;
+      if (DOE && typeof DOE.requestPermission === 'function') {
+        const r = await DOE.requestPermission();
+        if (r !== 'granted') { setGyroMsg('Motion access denied. Drag to look around.'); return; }
+      }
+      gyro.current.base = null; gyro.current.q = null;
+      drag.current = { yaw: 0, pitch: 0 };
+      setGyroOn(true);
+      setGyroMsg('Gyro on. Move your phone to look around.');
+      setTimeout(() => setGyroMsg(''), 3000);
+    } catch { setGyroMsg('Gyro not available here. Drag to look around.'); }
+  };
+  const recenter = () => { drag.current = { yaw: 0, pitch: 0 }; gyro.current.base = null; };
 
   // 3D scene
   useEffect(() => {
@@ -151,13 +215,25 @@ export function PhoneCockpit() {
       if (m) {
         const chase = viewRef.current === 'chase';
         jets[me].visible = chase;
-        camera.rotation.set((m.p * Math.PI) / 180, (-m.h * Math.PI) / 180, (-m.b * Math.PI) / 180);
+        const qPlane = new THREE.Quaternion().setFromEuler(new THREE.Euler((m.p * Math.PI) / 180, (-m.h * Math.PI) / 180, (-m.b * Math.PI) / 180, 'YXZ'));
         const fwd = new THREE.Vector3(Math.sin((m.h * Math.PI) / 180), 0, -Math.cos((m.h * Math.PI) / 180));
         if (chase) {
           camera.position.set(m.x - fwd.x * 1.4, m.y + 0.35, m.z - fwd.z * 1.4);
-          camera.rotation.set((m.p * Math.PI) / 180 * 0.4 - 0.12, (-m.h * Math.PI) / 180, 0);
+          // orbit around the jet with drag
+          const off = new THREE.Vector3(-fwd.x * 1.4, 0.35, -fwd.z * 1.4).applyAxisAngle(new THREE.Vector3(0, 1, 0), drag.current.yaw);
+          camera.position.set(m.x + off.x, m.y + off.y, m.z + off.z);
+          camera.lookAt(m.x, m.y, m.z);
         } else {
           camera.position.set(m.x + fwd.x * 0.1, m.y + 0.03, m.z + fwd.z * 0.1);
+          // 360 look-around: drag and/or phone gyro, relative to the aircraft nose
+          const qLook = new THREE.Quaternion().setFromEuler(new THREE.Euler(drag.current.pitch, drag.current.yaw, 0, 'YXZ'));
+          if (gyro.current.on && gyro.current.q) {
+            const g = gyro.current;
+            if (g.base === null) g.base = new THREE.Euler().setFromQuaternion(g.q!, 'YXZ').y;
+            const unyaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -g.base);
+            qLook.multiply(unyaw.multiply(g.q!.clone()));
+          }
+          camera.quaternion.copy(qPlane.multiply(qLook));
         }
         if (o) {
           marker.position.set(o.x, o.y, o.z);
@@ -229,7 +305,7 @@ export function PhoneCockpit() {
           <div>TRAFFIC {live ? live.distanceNM.toFixed(1) : '--'} NM</div>
         </div>
         {live && !live.running && (
-          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 text-xs bg-black/60 px-3 py-1 rounded">SIM PAUSED</div>
+          <div className="absolute bottom-32 left-1/2 -translate-x-1/2 text-xs bg-black/60 px-3 py-1 rounded">SIM PAUSED</div>
         )}
       </div>
 
@@ -253,8 +329,13 @@ export function PhoneCockpit() {
           <div className="mt-2 rounded-lg px-3 py-1 bg-emerald-600/90 text-white text-xs font-bold">EXECUTING: {me.action}</div>
         )}
       </div>
-      {ra && <div className="absolute inset-0 pointer-events-none animate-pulse" style={{ boxShadow: 'inset 0 0 0 8px rgba(239,68,68,0.85)' }} />}
-      {ta && <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: 'inset 0 0 0 5px rgba(245,158,11,0.8)' }} />}
+
+      {gyroMsg ? <div className="absolute left-1/2 -translate-x-1/2 bottom-28 text-xs bg-black/70 text-white px-3 py-1 rounded pointer-events-none">{gyroMsg}</div> : null}
+      <div className="absolute left-3 right-3 bottom-16 flex justify-center gap-2">
+        <button className="px-3 py-1.5 rounded-lg bg-black/60 border border-white/30 text-white text-xs font-bold" onClick={toggleGyro}>{gyroOn ? 'Gyro: ON' : 'Use gyro'}</button>
+        <button className="px-3 py-1.5 rounded-lg bg-black/60 border border-white/30 text-white text-xs font-bold" onClick={recenter}>Recenter</button>
+        <span className="px-2 py-1.5 text-[11px] text-white/80 self-center" style={{ textShadow: '0 0 4px #000' }}>Drag to look around 360°</span>
+      </div>
 
       {/* Controls */}
       <div className="absolute bottom-3 left-3 right-3 flex justify-between gap-2">
