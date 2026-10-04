@@ -102,7 +102,7 @@ export function capHalfAngleDeg(turningRadiusNM: number): number {
 }
 
 /** Unit directions spread on a spherical cap of half-angle `theta` around `axis`. */
-function capDirections(axis: V3, n: number, theta: number, azOffset: number): V3[] {
+function capDirections(axis: V3, n: number, theta: number, azOffset: number, verticalPair: boolean): V3[] {
   const helper: V3 = Math.abs(axis[1]) > 0.95 ? [1, 0, 0] : [0, 1, 0];
   const right = norm(cross(helper, axis)); // lateral basis
   const up = cross(axis, right); // vertical-ish basis
@@ -117,8 +117,11 @@ function capDirections(axis: V3, n: number, theta: number, azOffset: number): V3
   // sweeping the azimuth so the fan reads as an umbrella / hemisphere in 3D.
   const pairs = m / 2;
   for (let j = 0; j < pairs; j++) {
-    const alpha = theta * (0.4 + (0.6 * (j + 1)) / pairs);
-    const az = azOffset + (j * Math.PI) / pairs;
+    // A lone pair (paths_per_hop 2–3) opens at the gentler inner angle so it stays flyable.
+    const alpha = pairs === 1 ? theta * 0.7 : theta * (0.4 + (0.6 * (j + 1)) / pairs);
+    // With 2+ pairs the innermost (gentlest) pair is the vertical one, so every node offers a
+    // flyable climb and descent (TCAS-style vertical escape) alongside lateral turns.
+    const az = azOffset + (pairs >= 2 || verticalPair ? Math.PI / 2 : 0) + (j * Math.PI) / pairs;
     const ca = Math.cos(alpha);
     const sa = Math.sin(alpha);
     for (const side of [1, -1]) {
@@ -213,7 +216,8 @@ export function generateTree(args: PipelineArgs): PathTree {
       // Fan axis leans back toward the original course so the wavefront keeps advancing.
       const axis = norm([pDir[0] + forward[0], pDir[1] + forward[1], pDir[2] + forward[2]]);
       const azOffset = (rng() - 0.5) * 0.6;
-      const dirs = capDirections(h === 1 ? forward : axis, n, theta, azOffset);
+      // With a single branch pair (paths_per_hop 2–3), alternate lateral / vertical between siblings.
+      const dirs = capDirections(h === 1 ? forward : axis, n, theta, azOffset, e % 2 === 1);
 
       const half = HOP_LENGTH / 2;
       const ctrl: V3 = [pPos[0] + pDir[0] * half, pPos[1] + pDir[1] * half, pPos[2] + pDir[2] * half];
@@ -295,10 +299,15 @@ export function pruneLimits(args: PipelineArgs): PruneLimits {
   const weightFactor = 1.15 - 0.4 * ((args.aircraftWeightPct - 40) / 60); // heavy → less agile
   const ageFactor = 1 - 0.3 * (args.aircraftAgeYrs / 35); // old airframe → derated
   const gFactor = 0.85 + ((args.maxLoadFactorG - 1.2) / 1.3) * 0.5;
+  const climbFactor = 0.65 + 0.75 * (args.maxClimbRateFpm / 6000); // spec climb performance
+  // Like the turn limit, vertical limits scale with the (visually exaggerated) fan angle so the
+  // gentler vertical branches stay flyable. Climbs are derated by weight and age; descents are
+  // easier for a jet and only mildly derated by age.
+  const cap = capHalfAngleDeg(args.turningRadiusNM);
   return {
-    maxTurnDeg: capHalfAngleDeg(args.turningRadiusNM) * 1.35 * gFactor * weightFactor * ageFactor,
-    maxClimbDeg: (8 + 40 * (args.maxClimbRateFpm / 6000)) * weightFactor * ageFactor,
-    maxDescentDeg: 40,
+    maxTurnDeg: cap * 1.35 * gFactor * weightFactor * ageFactor,
+    maxClimbDeg: cap * climbFactor * weightFactor * ageFactor,
+    maxDescentDeg: cap * 0.95 * (1 - 0.15 * (args.aircraftAgeYrs / 35)),
     maxCourseDevDeg: 110,
   };
 }
