@@ -17,6 +17,7 @@ import { TrajectoryPruningGraph } from './components/TrajectoryPruningGraph';
 import { CockpitDisplay } from './components/CockpitDisplay';
 import { TelemetryPanel } from './components/TelemetryPanel';
 import { SimulationControls } from './components/SimulationControls';
+import { HostPhoneLink } from './components/HostPhoneLink';
 import { ConflictResolutionModal } from './components/ConflictResolutionModal';
 import { Plane, ShieldAlert, Radio, AlertOctagon, HelpCircle, CheckCircle2, RefreshCw, Zap, Crosshair } from 'lucide-react';
 
@@ -682,6 +683,8 @@ export default function App() {
 
       {/* Main Simulation Workspace */}
       <main className="flex-1 p-4 sm:p-6 max-w-[1650px] w-full mx-auto flex flex-col gap-5">
+        <HostPhoneLink planeA={planeA} planeB={planeB} conflict={conflict} simTimeSec={simTimeSec} isSimulating={isSimulating} />
+
         {/* Simulation Control Bar */}
         <SimulationControls
           isSimulating={isSimulating}
