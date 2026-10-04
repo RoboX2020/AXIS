@@ -28,9 +28,9 @@ export const ConflictResolutionModal: React.FC<Props> = ({
   const isRA = conflict.tcasStatus === 'RESOLUTION_ADVISORY' || conflict.isWithinEmergencyRange;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="absolute inset-0 z-30 flex items-start justify-center p-2 bg-black/85 backdrop-blur-sm overflow-y-auto rounded-xl animate-in fade-in duration-200">
       <div
-        className={`w-full max-w-2xl bg-black border-2 rounded-2xl shadow-2xl overflow-hidden ${
+        className={`w-full bg-black border-2 rounded-2xl shadow-2xl overflow-hidden ${
           isRA ? 'border-red-500 ring-4 ring-red-500/40' : 'border-blue-500 ring-4 ring-blue-500/40'
         }`}
       >
@@ -63,7 +63,7 @@ export const ConflictResolutionModal: React.FC<Props> = ({
         </div>
 
         {/* Conflict Parameters & Situation Summary */}
-        <div className="p-4 bg-neutral-950 border-b border-neutral-800 text-xs font-mono text-slate-300 grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="p-4 bg-neutral-950 border-b border-neutral-800 text-xs font-mono text-slate-300 grid grid-cols-2 gap-3">
           <div className="p-2.5 bg-black rounded-xl border border-red-500/40">
             <div className="text-slate-400 text-[10px] font-bold">EMERGENCY RANGE</div>
             <div className="text-base font-black text-red-400">{conflict.distanceNM.toFixed(2)} NM</div>
