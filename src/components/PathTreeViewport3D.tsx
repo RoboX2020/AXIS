@@ -1,11 +1,3 @@
-// ============================================================================
-// PathTreeViewport3D - the 3D window that draws the AXIS path tree: the
-// fan of possible escape paths growing from the aircraft nose, hop by hop.
-// Accepted segments glow green, rejected ones red, survivors yellow. It
-// animates the pipeline stages (grow, prune, consolidate) at human speed
-// so you can watch the algorithm think. Data comes from
-// lib/trajectoryTree.ts; camera: drag to orbit, scroll to zoom.
-// ============================================================================
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Compass, Eye, Minus, MoveHorizontal, Plus, RotateCcw } from 'lucide-react';
@@ -177,21 +169,14 @@ export const PathTreeViewport3D: React.FC<Props> = ({ tree, prune, consolidation
     const loop = () => {
       raf = requestAnimationFrame(loop);
       const t = clock.getElapsedTime();
-      // Advance any running pipeline animation (grow / prune / consolidate).
       tick(performance.now(), t);
 
-      // Orbit camera: the user controls spherical angles (theta = around, phi =
-      // up/down) and a distance (radius) around a target point. Convert spherical
-      // coordinates to an XYZ position with the standard formula, offset by the
-      // look-at target.
       const { radius, theta, phi } = orbit.current;
       const desired = new THREE.Vector3(
         radius * Math.sin(phi) * Math.sin(theta),
         radius * Math.cos(phi),
         radius * Math.sin(phi) * Math.cos(theta)
       ).add(orbitTarget.current);
-      // Lerp (move 10% of the remaining distance each frame) instead of snapping:
-      // this is what makes camera moves and drags feel smooth rather than jerky.
       camPos.current.lerp(desired, 0.1);
       camLook.current.lerp(orbitTarget.current, 0.1);
       camera.position.copy(camPos.current);
@@ -266,28 +251,16 @@ export const PathTreeViewport3D: React.FC<Props> = ({ tree, prune, consolidation
     const nn = nodeNoise.current;
     const pn = tr.nodeParent[s + 1] * 3;
     const cn = (s + 1) * 3;
-    // Position of sample k along this segment, with diffusion noise blended in.
     const sample = (k: number, out: number[]) => {
       const i = (s * SEGMENT_SAMPLES + k) * 3;
-      // t runs 0 at the parent end to 1 at the child end of the segment.
       const t = k / (SEGMENT_SAMPLES - 1);
-      // The parent's noise fades out along the segment (1-t), the child's noise
-      // fades in (t) - because both endpoints weight their shared node's noise
-      // identically, connected segments stay glued together instead of tearing.
       const wp = (1 - t) * ampParent;
       const wc = t * ampChild;
-      // Extra per-sample wiggle, strongest mid-segment (sin peaks at t=0.5) and
-      // zero at both ends - so it adds texture without detaching the endpoints.
       const wj = Math.sin(Math.PI * t) * ampChild;
       out[0] = pts[i] + nn[pn] * wp + nn[cn] * wc + jit[i] * wj;
       out[1] = pts[i + 1] + nn[pn + 1] * wp + nn[cn + 1] * wc + jit[i + 1] * wj;
       out[2] = pts[i + 2] + nn[pn + 2] * wp + nn[cn + 2] * wc + jit[i + 2] * wj;
     };
-    // THREE.LineSegments wants PAIRS of points per little line piece (a0,b0,
-    // a1,b1, ...), not a continuous strip - so each sample point after the first
-    // is written twice: once as the end of the previous piece, once as the start
-    // of the next. The a/b swap below reuses each computed point as the next
-    // piece's start, avoiding a redundant recompute.
     const a = [0, 0, 0];
     const b = [0, 0, 0];
     let o = s * VERTS_PER_SEG * 3;
@@ -387,18 +360,10 @@ export const PathTreeViewport3D: React.FC<Props> = ({ tree, prune, consolidation
     treeNodes.current = nodes;
 
     // Diffusion noise (Gaussian): per node, plus a smaller per-sample wiggle. Grows with hop depth.
-    // mulberry32 is a seeded random generator - same seed, same "random" tree wiggle
-    // every reload, so the visual is stable instead of shimmering between renders.
     const rng = mulberry32(segCount * 7 + 3);
-    // Box-Muller transform: turns two uniform random numbers into one bell-curve
-    // (Gaussian) number - the classic way to get natural-looking randomness, where
-    // small offsets are common and big ones are rare (like real diffusion noise).
     const gauss = () => Math.sqrt(-2 * Math.log(Math.max(1e-6, rng()))) * Math.cos(2 * Math.PI * rng());
     const nn = new Float32Array(tree.nodeCount * 3);
     for (let n = 1; n < tree.nodeCount; n++) {
-      // Deeper hops get MORE noise (scale grows with hop depth) - visually, the
-      // paths spread and roughen the further from the aircraft they reach, which
-      // reads as growing uncertainty about the far future.
       const scale = 1.2 + tree.nodeHop[n] * 0.45;
       for (let k = 0; k < 3; k++) nn[n * 3 + k] = gauss() * scale;
     }
@@ -471,10 +436,6 @@ export const PathTreeViewport3D: React.FC<Props> = ({ tree, prune, consolidation
 
     const { memberCount: M, pointsPerPath: P, memberPolylines, memberCluster, centroids } = consolidation;
     const pieces = P - 1;
-    // Precompute two parallel vertex buffers for the merge animation: `from` holds
-    // every surviving path exactly where it is, `to` holds the same points moved
-    // onto their cluster's centroid path. During the animation the tick loop lerps
-    // between them, so each green path visibly flows into its yellow cluster tube.
     const from = new Float32Array(M * pieces * 2 * 3);
     const to = new Float32Array(M * pieces * 2 * 3);
     for (let m = 0; m < M; m++) {
@@ -619,15 +580,10 @@ export const PathTreeViewport3D: React.FC<Props> = ({ tree, prune, consolidation
         setLive({ caption: 'Press “Generate paths” to start the diffusion wavefront', accepted: 0, rejected: 0, hop: 0 });
         break;
       case 'generating': {
-        // Start the "diffusion" show: full noise applied, nothing drawn yet. The
-        // tick loop then reveals hop by hop while winding the noise down to zero -
-        // mimicking how a diffusion model sharpens random noise into structure.
         setTreeVisible(true);
         if (hopLabels.current) hopLabels.current.children.forEach((c) => (c.visible = false));
         setTubeTargets(() => ({ opacity: 0, color: COLOR_YELLOW }), true);
         paintAll(() => COLOR_PENDING);
-        // Hop-1 segments anchor on the aircraft itself (its noise amplitude is 0);
-        // every other segment starts at full noise (amplitude 1 at both ends).
         for (let i = 0; i < tr.segCount; i++) writeSegment(i, tr.nodeHop[i + 1] === 1 ? 0 : 1, 1);
         markDirty(true, false);
         setDrawnSegments(0);
@@ -651,9 +607,6 @@ export const PathTreeViewport3D: React.FC<Props> = ({ tree, prune, consolidation
         hopLabels.current?.children.forEach((c) => (c.visible = true));
         setDrawnSegments(tr.segCount);
         paintAll(() => COLOR_PENDING);
-        // Reveal order per hop: a seeded Fisher-Yates shuffle, so the verdict
-        // colors pop up scattered across the hop (looks like evaluation sweeps
-        // the whole layer at once) but in the SAME order on every replay.
         const rng = mulberry32(tr.segCount + 99);
         const order: Int32Array[] = [new Int32Array(0)];
         for (let h = 1; h <= tr.hops; h++) {
@@ -661,8 +614,6 @@ export const PathTreeViewport3D: React.FC<Props> = ({ tree, prune, consolidation
           const n = tr.hopSegStart[h] - lo;
           const arr = new Int32Array(n);
           for (let i = 0; i < n; i++) arr[i] = lo + i;
-          // Fisher-Yates: walk from the back, swap each slot with a random slot
-          // at or before it - the standard unbiased shuffle.
           for (let i = n - 1; i > 0; i--) {
             const j = Math.floor(rng() * (i + 1));
             const tmp = arr[i];
@@ -753,29 +704,21 @@ export const PathTreeViewport3D: React.FC<Props> = ({ tree, prune, consolidation
     };
 
     if (a?.kind === 'generate') {
-      // How far into the growth animation we are, in units of hops (1.5 = halfway
-      // through drawing hop 2). Each hop gets GEN_HOP_MS milliseconds to appear.
       const t = now - a.start;
       const hopF = Math.min(tr.hops, t / GEN_HOP_MS);
       const fullHops = Math.floor(hopF);
-      // Draw all segments of completed hops, plus the proportional fraction of the
-      // hop currently growing - the wavefront creeps forward smoothly.
       let drawn = tr.hopSegStart[fullHops];
       if (fullHops < tr.hops) drawn += Math.floor((hopF - fullHops) * (tr.hopSegStart[fullHops + 1] - tr.hopSegStart[fullHops]));
       setDrawnSegments(drawn);
       hopLabels.current?.children.forEach((c, i) => (c.visible = i < Math.ceil(hopF)));
 
-      // Each hop denoises from the moment it starts to appear. The amplitude is
-      // linearly ramped down then SQUARED (lin*lin): easing that spends more time
-      // nearly-clean than nearly-noisy, which reads as paths "snapping into focus".
+      // Each hop denoises from the moment it starts to appear.
       const prevAmps = a.amps.slice();
       for (let h = 1; h <= tr.hops; h++) {
         const hs = (h - 1) * GEN_HOP_MS;
         const lin = t < hs ? 1 : Math.max(0, 1 - (t - hs) / DENOISE_MS);
         a.amps[h] = lin * lin;
       }
-      // Rewrite only hops whose noise changed - rewriting thousands of segments
-      // every frame would waste the GPU budget on static geometry.
       let dirty = false;
       for (let h = 1; h <= tr.hops; h++) {
         if (t < (h - 1) * GEN_HOP_MS) break; // not drawn yet
@@ -798,13 +741,9 @@ export const PathTreeViewport3D: React.FC<Props> = ({ tree, prune, consolidation
       let activeHop = tr.hops;
       for (let h = 1; h <= tr.hops; h++) {
         const hs = (h - 1) * PRUNE_HOP_MS;
-        // Progress through THIS hop's reveal (0..1). 0.85 leaves a beat of rest at
-        // the end of each hop so the eye can register the completed layer.
         const frac = Math.min(1, Math.max(0, (t - hs) / (PRUNE_HOP_MS * 0.85)));
         if (frac < 1 && t >= hs && activeHop === tr.hops) activeHop = h;
         const order = a.order[h];
-        // How many of this hop's shuffled segments should have shown their verdict
-        // by now; paint the newly-due ones green (accepted) or red (rejected).
         const target = Math.floor(frac * order.length);
         for (let i = a.revealed[h]; i < target; i++) {
           paintSegment(order[i], verdictColor(order[i]));
@@ -854,8 +793,6 @@ export const PathTreeViewport3D: React.FC<Props> = ({ tree, prune, consolidation
         }
       } else if (a.phase === 1 && merge) {
         // Green member paths converge onto their cluster centroids and turn yellow.
-        // k runs 0->1 over MERGE_MS with an ease-in-out curve (slow-fast-slow), and
-        // every vertex is lerped from its original spot to the centroid position.
         const k = easeInOut(Math.min(1, (t - FADE_REJECTED_MS) / MERGE_MS));
         const posArr = (merge.geometry.getAttribute('position') as THREE.BufferAttribute).array as Float32Array;
         const colArr = (merge.geometry.getAttribute('color') as THREE.BufferAttribute).array as Float32Array;
@@ -888,10 +825,7 @@ export const PathTreeViewport3D: React.FC<Props> = ({ tree, prune, consolidation
       }
     }
 
-    // Tube opacity / colour easing (consolidation + runtime NN pruning). Each
-    // frame, close 12% of the remaining gap to the target - exponential decay that
-    // produces a natural soft fade without any timers. Snap the final fraction so
-    // values actually land on 0/1 instead of creeping forever.
+    // Tube opacity / colour easing (consolidation + runtime NN pruning).
     tubes.current.forEach((tb) => {
       tb.opacity += (tb.targetOpacity - tb.opacity) * 0.12;
       if (Math.abs(tb.targetOpacity - tb.opacity) < 0.005) tb.opacity = tb.targetOpacity;

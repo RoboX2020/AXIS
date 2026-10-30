@@ -1,21 +1,3 @@
-// ============================================================================
-// trajectoryTree.ts - the "AXIS pipeline": how the app dreams up and
-// filters thousands of possible escape paths. Pure logic, no graphics.
-//
-// Think of it as a tree growing from the aircraft's nose:
-//   Stage 1 (generateTree): every branch tip sprouts several new branches
-//           (turns, climbs, descents), so a few "hops" explode into
-//           thousands of possible paths.
-//   Stage 2 (llmPrune): a simulated rule-checker rejects every branch the
-//           real airframe could not fly (too tight a turn, too steep a
-//           climb) - rejected branches kill their children too.
-//   Stage 3 (consolidate): the surviving paths are grouped by similarity
-//           (k-means clustering) into 10-20 representative trajectories.
-//   Stage 4 (runtimeScore): a small scoring function ranks those against
-//           live conditions (fuel, weight, engine health, wind) and keeps
-//           the best 8-10.
-// Everything is seeded (deterministic): same inputs, same tree, every run.
-// ============================================================================
 /**
  * AXIS Trajectory Pipeline — pure, seeded logic (no three.js).
  *
@@ -90,7 +72,6 @@ export const ROOT_POSITION: [number, number, number] = [0, 0, 2.5];
 const SEED = 0xa715;
 const DEG = 180 / Math.PI;
 
-// A tiny seedable random-number generator: same seed, same sequence - that is what makes the "random" path fan identical on every run.
 export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
@@ -116,7 +97,6 @@ const cross = (a: V3, b: V3): V3 => [
 ];
 
 /** Generation cap half-angle: tight radius → near-full hemisphere, wide radius → closed umbrella. */
-// How wide the fan of new branches opens, from the turning radius: a tight turn radius opens the umbrella wide.
 export function capHalfAngleDeg(turningRadiusNM: number): number {
   return clamp(130 / (1 + (turningRadiusNM - 0.5) * 0.6), 12, 88);
 }
@@ -189,19 +169,13 @@ export interface PathTree {
   capDeg: number;
 }
 
-// STAGE 1: grow the whole path tree hop by hop, fanning out each tip; huge hops are sampled down so rendering stays fast.
 export function generateTree(args: PipelineArgs): PathTree {
-  // Seed the random generator FROM THE SETTINGS, so the same knobs always
-  // grow the exact same tree (the demo is deterministic on purpose).
   const rng = mulberry32(SEED ^ (args.pathsPerHop * 131 + args.numberOfHops * 977));
   const n = Math.round(args.pathsPerHop);
   const H = Math.round(args.numberOfHops);
   const theta = capHalfAngleDeg(args.turningRadiusNM) / DEG;
   const forward: V3 = [0, 0, 1];
 
-  // First count how many nodes each hop will have, so the big typed arrays
-  // below can be allocated once at exactly the right size (fast, no resizing).
-  // Hops that would exceed the per-hop budget get subsampled ('truncated').
   // Count nodes first so typed arrays can be allocated exactly.
   const hopNodeCounts: number[] = [1];
   let truncated = false;
@@ -214,9 +188,6 @@ export function generateTree(args: PipelineArgs): PathTree {
   const nodeCount = hopNodeCounts.reduce((a, b) => a + b, 0);
   const segCount = nodeCount - 1;
 
-  // The tree stored flat in typed arrays (positions, directions, parent
-  // links, per-branch turn/climb angles) - far faster for thousands of nodes
-  // than JavaScript objects, and directly uploadable to the GPU.
   const nodePos = new Float32Array(nodeCount * 3);
   const nodeDir = new Float32Array(nodeCount * 3);
   const nodeParent = new Int32Array(nodeCount).fill(-1);
@@ -230,8 +201,6 @@ export function generateTree(args: PipelineArgs): PathTree {
   nodePos.set(ROOT_POSITION, 0);
   nodeDir.set(forward, 0);
 
-  // Now grow the tree hop by hop: every parent tip sprouts n children fanned
-  // across the steering cap from capDirections().
   let prevStart = 0;
   let prevEnd = 1; // node index range of the previous hop
   let next = 1;
@@ -260,8 +229,6 @@ export function generateTree(args: PipelineArgs): PathTree {
         nodeParent[c] = p;
         nodeHop[c] = h;
 
-        // Each branch is drawn as a smooth quadratic Bezier curve (start,
-        // control, end) sampled into SEGMENT_SAMPLES points for rendering.
         const s = c - 1;
         for (let k = 0; k < SEGMENT_SAMPLES; k++) {
           const t = k / (SEGMENT_SAMPLES - 1);
@@ -273,8 +240,6 @@ export function generateTree(args: PipelineArgs): PathTree {
           segPoints[o + 1] = a * pPos[1] + b * ctrl[1] + cc * end[1];
           segPoints[o + 2] = a * pPos[2] + b * ctrl[2] + cc * end[2];
         }
-        // Record how sharply this branch turns, climbs and deviates from the
-        // original course - stage 2 (llmPrune) judges exactly these numbers.
         segTurnDeg[s] = Math.abs(wrapDeg(headingDeg(d) - headingDeg(pDir)));
         segClimbDeg[s] = climbDeg(d);
         segCourseDevDeg[s] = Math.abs(wrapDeg(headingDeg(d)));
@@ -285,13 +250,9 @@ export function generateTree(args: PipelineArgs): PathTree {
     prevEnd = next;
   }
 
-  // The final hop's nodes are the 'leaves': each leaf = one complete
-  // root-to-tip escape path.
   const leafNodes: number[] = [];
   for (let i = prevStart; i < prevEnd; i++) leafNodes.push(i);
 
-  // Also report the theoretical totals (paths = pathsPerHop ^ hops) even
-  // when the rendered tree was subsampled.
   let theoreticalSegments = 0;
   for (let h = 1; h <= H; h++) theoreticalSegments += Math.pow(n, h);
 
@@ -334,7 +295,6 @@ export interface PruneLimits {
 }
 
 /** Airframe envelope used by the (simulated) LLM pruner. */
-// Turn the aircraft settings (age, weight, climb rate, load factor) into concrete do-not-exceed limits for the pruner.
 export function pruneLimits(args: PipelineArgs): PruneLimits {
   const weightFactor = 1.15 - 0.4 * ((args.aircraftWeightPct - 40) / 60); // heavy → less agile
   const ageFactor = 1 - 0.3 * (args.aircraftAgeYrs / 35); // old airframe → derated
@@ -361,7 +321,6 @@ export interface PruneResult {
   rejectedCount: number;
 }
 
-// STAGE 2: walk every branch and accept/reject it against the airframe limits; a rejected branch rejects its whole subtree.
 export function llmPrune(tree: PathTree): PruneResult {
   const rng = mulberry32(SEED ^ 0x5eed);
   const limits = pruneLimits(tree.args);
@@ -369,8 +328,6 @@ export function llmPrune(tree: PathTree): PruneResult {
   const reason = new Uint8Array(tree.segCount);
   let acceptedCount = 0;
 
-  // Walk every branch in order. Parents always come before their children in
-  // this layout, so 'was my parent rejected?' is already decided when asked.
   for (let s = 0; s < tree.segCount; s++) {
     const parentNode = tree.nodeParent[s + 1];
     const parentSeg = parentNode - 1; // -1 for root
@@ -382,10 +339,6 @@ export function llmPrune(tree: PathTree): PruneResult {
       climb > limits.maxClimbDeg * 0.85 ||
       -climb > limits.maxDescentDeg * 0.85;
 
-    // The rejection rules, in order: parent already rejected, doubling back
-    // on course, too tight a turn, too steep a climb, too steep a descent -
-    // and a small seeded 'judgement call' rejection on borderline branches
-    // (simulating an AI pruner being cautious near the limits).
     if (parentSeg >= 0 && status[parentSeg] === SEG_REJECTED) r = 'PARENT_REJECTED';
     else if (tree.segCourseDevDeg[s] > limits.maxCourseDevDeg) r = 'COURSE_REVERSAL';
     else if (turn > limits.maxTurnDeg) r = 'TURN_RADIUS';
@@ -398,7 +351,6 @@ export function llmPrune(tree: PathTree): PruneResult {
     if (r === 'NONE') acceptedCount++;
   }
 
-  // A complete path survives only if its final branch survived.
   const acceptedLeaves = tree.leafNodes.filter((node) => status[node - 1] === SEG_ACCEPTED);
   return {
     status,
@@ -483,14 +435,11 @@ function polylineFeatures(poly: Float32Array, pts: number): TrajectoryFeatures {
   };
 }
 
-// STAGE 3: cluster the surviving paths by similarity (k-means) into 10-20 representative trajectories.
 export function consolidate(tree: PathTree, prune: PruneResult): Consolidation {
   const rng = mulberry32(SEED ^ 0xc1);
   const pts = polylineLength(tree.hops);
   const leaves = prune.acceptedLeaves;
 
-  // Take the surviving full paths (evenly subsampled if there are very many)
-  // and lay each one's points out flat for the math below.
   // Members for k-means + merge animation (evenly subsampled if huge).
   const stride = Math.max(1, leaves.length / MAX_MERGE_MEMBERS);
   const members: number[] = [];
@@ -501,15 +450,12 @@ export function consolidate(tree: PathTree, prune: PruneResult): Consolidation {
   const memberPolylines = new Float32Array(M * pts * 3);
   members.forEach((leaf, i) => writeLeafPolyline(tree, leaf, memberPolylines, i * pts * 3));
 
-  // We want 10-20 representative paths (fewer if not enough survived).
   const K = M < 10 ? M : clamp(M, 10, 20);
   const memberCluster = new Int32Array(M);
   if (K === 0) {
     return { K: 0, pointsPerPath: pts, centroids: [], features: [], clusterSize: [], memberPolylines, memberCluster, memberCount: 0 };
   }
 
-  // Describe each path by where it is at each hop - its 'feature vector'.
-  // Similar vectors means similar paths, which is what clustering needs.
   // Feature vector: node position at each hop (every SEGMENT_SAMPLES-1 points).
   const D = tree.hops * 3;
   const feat = new Float32Array(M * D);
@@ -530,9 +476,6 @@ export function consolidate(tree: PathTree, prune: PruneResult): Consolidation {
     return d;
   };
 
-  // k-means clustering in plain words: pick starting centers spread far
-  // apart (k-means++), then repeat up to 20 times: assign every path to its
-  // nearest center, then move each center to the average of its members.
   // k-means++ initialisation
   const centers = new Float32Array(K * D);
   centers.set(feat.subarray(0, D), 0);
@@ -588,8 +531,6 @@ export function consolidate(tree: PathTree, prune: PruneResult): Consolidation {
     if (!changed) break;
   }
 
-  // Each cluster's representative path is the average of its members' paths
-  // (so the merge animation in the 3D view lands exactly on it).
   // Centroid polylines = mean of member polylines, so the merge animation lands exactly on them.
   const centroids: Float32Array[] = Array.from({ length: K }, () => new Float32Array(pts * 3));
   const clusterSize = new Array<number>(K).fill(0);
@@ -629,12 +570,8 @@ export interface RuntimeResult {
 }
 
 /** 0 at nominal, 1 at the most adverse settings. */
-// How bad are current conditions, 0 (nominal) to 1 (worst), from the runtime sliders.
 export function runtimeStress(rt: RuntimeArgs): number {
   const n = DEFAULT_RUNTIME_ARGS;
-  // Each condition (overweight, old airframe, weak engine, low fuel, wind
-  // shear) becomes a 0-1 'how bad is it' number, then blends into one stress
-  // score dominated by the worst factor.
   const weight = Math.max(0, rt.weightPct - n.weightPct) / (100 - n.weightPct);
   const age = Math.max(0, rt.ageYrs - n.ageYrs) / (35 - n.ageYrs);
   const engine = (n.engineHealthPct - rt.engineHealthPct) / (n.engineHealthPct - 40);
@@ -647,7 +584,6 @@ export function runtimeStress(rt: RuntimeArgs): number {
   return clamp(worst * 0.7 + mean * 0.6, 0, 1);
 }
 
-// STAGE 4: score the representative trajectories against live conditions and keep the best 8-10, marking the top one.
 export function runtimeScore(con: Consolidation, rt: RuntimeArgs): RuntimeResult {
   const stress = runtimeStress(rt);
   // Seed from the (rounded) runtime state so ties break "randomly" but reproducibly.
@@ -669,17 +605,11 @@ export function runtimeScore(con: Consolidation, rt: RuntimeArgs): RuntimeResult
   //   low fuel → avoid long detours.
   const hops = Math.max(1, (con.pointsPerPath - 1) / (SEGMENT_SAMPLES - 1));
   const baseLength = HOP_LENGTH * hops;
-  // The penalties adapt to the live aircraft: a weak engine makes climbs
-  // costly, wind shear makes descents costly, heavy/old makes turns costly,
-  // low fuel makes detours costly.
   const wClimb = 0.4 + 2.2 * engine + 0.8 * heavy;
   const wDescent = 0.4 + 2.2 * shear;
   const wTurn = 0.3 + 1.6 * heavy * heavy + 0.8 * old * old;
   const wLength = 0.2 + 2.0 * lowFuel;
 
-  // Score every representative path: reward getting away from the intruder's
-  // course, subtract the adapted penalties, add a tiny seeded jitter for
-  // variety, and squash through the logistic curve into a 0-1 score.
   const scores = con.features.map((f) => {
     const separation = Math.min(1, Math.hypot(f.lateralOffset, f.verticalOffset) / (baseLength * 0.25));
     const z =
@@ -693,8 +623,6 @@ export function runtimeScore(con: Consolidation, rt: RuntimeArgs): RuntimeResult
     return 1 / (1 + Math.exp(-z));
   });
 
-  // Rank best-first and keep the top 8-10 (fewer under high stress);
-  // ranked[0] is the recommended path the UI highlights.
   const ranked = scores.map((_, i) => i).sort((a, b) => scores[b] - scores[a]);
   const survivorTarget = Math.min(con.K, Math.round(10 - 2 * stress));
   const survivors = ranked.slice(0, survivorTarget);

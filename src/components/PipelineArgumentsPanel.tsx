@@ -1,9 +1,3 @@
-// ============================================================================
-// PipelineArgumentsPanel - the knobs for the AXIS path-tree pipeline
-// (lib/trajectoryTree.ts): how many paths fan out per hop, how many hops,
-// turning radius, aircraft age/weight/climb limits, and the live "runtime"
-// sliders (fuel, engine health, wind). Changing a knob re-runs the tree.
-// ============================================================================
 import React from 'react';
 import { BrainCircuit, CheckCircle2, Cpu, Lock, Play, RotateCcw, Scissors, Sparkles, Star, Waves } from 'lucide-react';
 import {
@@ -73,9 +67,6 @@ const ArgSlider: React.FC<SliderProps> = ({ name, hint, value, min, max, step, u
   </label>
 );
 
-// The pipeline always flows through these stages in this exact order (generate
-// candidate paths -> prune bad ones -> consolidate survivors -> fly). Comparing
-// a stage's position in this list is how the UI knows what is done vs pending.
 const STAGE_ORDER: PipelineStage[] = ['idle', 'generating', 'generated', 'pruning', 'pruned', 'consolidating', 'consolidated', 'runtime'];
 const stageIndex = (s: PipelineStage) => STAGE_ORDER.indexOf(s);
 
@@ -98,10 +89,7 @@ export const PipelineArgumentsPanel: React.FC<Props> = ({
   onReset,
 }) => {
   const si = stageIndex(stage);
-  // During the three 'working' stages the panel shows progress animation.
   const animating = stage === 'generating' || stage === 'pruning' || stage === 'consolidating';
-  // The flight controls stay locked until a solution path has survived the whole
-  // pipeline - you cannot fly a trajectory the system has not finished choosing.
   const runtimeUnlocked = stage === 'consolidated' || stage === 'runtime';
 
   const steps = [
