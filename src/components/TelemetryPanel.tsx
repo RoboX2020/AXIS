@@ -27,8 +27,13 @@ export const TelemetryPanel: React.FC<Props> = ({
   conflict,
   timeHistory,
 }) => {
+  // Which of the four readouts is on screen: the raw ADS-B telemetry cards, the
+  // TCAS/FLARM math worked live, the separation-over-time graphs, or the
+  // simulated Mode S radio packets.
   const [activeTab, setActiveTab] = useState<'TELEMETRY' | 'MATH' | 'GRAPHS' | 'PACKETS'>('TELEMETRY');
 
+  // Turn each plane's simulation state into a realistic ADS-B telemetry record
+  // (the format real aircraft broadcast), computed fresh every render.
   const adsbA = generateADSBTelemetry(planeA);
   const adsbB = generateADSBTelemetry(planeB);
 
@@ -324,6 +329,9 @@ export const TelemetryPanel: React.FC<Props> = ({
                     points={timeHistory
                       .map((pt, i) => {
                         const x = (i / Math.max(1, timeHistory.length - 1)) * 300;
+                        // Map distance into the SVG's 90-unit-tall canvas: 24 NM near the top, 0 NM
+                        // near the bottom, and flip the axis because SVG y grows downward. The clamp
+                        // keeps the trace from overflowing the chart.
                         const y = Math.max(5, Math.min(85, 85 - (pt.distanceNM / 24) * 80));
                         return `${x},${y}`;
                       })
@@ -351,6 +359,8 @@ export const TelemetryPanel: React.FC<Props> = ({
                       points={timeHistory
                         .map((pt, i) => {
                           const x = (i / Math.max(1, timeHistory.length - 1)) * 300;
+                          // Same trick for altitude: the chart window covers 15,000-40,000 ft, mapped
+                          // onto the 90-unit SVG canvas with the y-axis flipped.
                           const y = Math.max(5, Math.min(85, 85 - ((pt.altA - 15000) / 25000) * 80));
                           return `${x},${y}`;
                         })

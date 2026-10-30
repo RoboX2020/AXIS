@@ -16,8 +16,13 @@ interface Props {
 
 export const CockpitDisplay: React.FC<Props> = ({ ownship, intruder, conflict }) => {
   // TCAS VSI Dial geometry
+  // The dial can show at most +/-6000 feet per minute of climb/descent; a real
+  // TCAS VSI pegs at its limits too, so extreme values never break the gauge.
   const maxVSI = 6000;
+  // Clamp the real vertical speed into that +/-6000 fpm window before drawing.
   const currentVS = Math.max(-maxVSI, Math.min(maxVSI, ownship.verticalSpeed));
+  // Convert feet-per-minute into a needle angle: full scale (6000 fpm) sweeps the
+  // needle 135 degrees from center, so half scale sweeps 67.5, and so on.
   const needleAngleDeg = (currentVS / maxVSI) * 135;
 
   // Intruder relative bearing and range on CDTI
@@ -25,27 +30,43 @@ export const CockpitDisplay: React.FC<Props> = ({ ownship, intruder, conflict })
   const dy = intruder.position.y - ownship.position.y;
   const intruderRangeNM = Math.sqrt(dx * dx + dy * dy);
 
+  // Bearing from our plane to the intruder. atan2 gets (x, y) here, not the usual
+  // (y, x), because aviation bearings measure clockwise from north, not
+  // counter-clockwise from east like math class angles.
   const worldBearingRad = Math.atan2(dx, dy);
   const worldBearingDeg = (worldBearingRad * 180) / Math.PI;
 
+  // Relative bearing = where the intruder sits on OUR nose. Subtracting our own
+  // heading turns a world compass direction into 'off your left/right wing'.
   let relBearingDeg = worldBearingDeg - ownship.heading;
+  // Keep the answer in -180..+180 so '10 degrees left' never shows as '350 right'.
   if (relBearingDeg > 180) relBearingDeg -= 360;
   if (relBearingDeg < -180) relBearingDeg += 360;
 
   // CDTI Screen Range (15 NM)
   const cdtiRadiusPx = 80;
   const maxCDTINM = 15;
+  // Convert nautical miles to pixels for the radar screen (15 NM fills the radius);
+  // Math.min pins contacts beyond 15 NM to the screen edge instead of drawing
+  // them outside the dial.
   const displayDistPx = Math.min(cdtiRadiusPx, (intruderRangeNM / maxCDTINM) * cdtiRadiusPx);
   const relBearingRad = (relBearingDeg * Math.PI) / 180;
   const targetX = displayDistPx * Math.sin(relBearingRad);
+  // Screen coordinates: x = sin(bearing), y = -cos(bearing), because bearing 0 is
+  // straight up (ahead of the nose) and screen y grows downward.
   const targetY = -displayDistPx * Math.cos(relBearingRad);
 
+  // How far above (+) or below (-) us the intruder is, in feet.
   const altDeltaFt = intruder.position.z - ownship.position.z;
   const altDeltaTag = `${altDeltaFt >= 0 ? '+' : '-'}${Math.abs(Math.round(altDeltaFt / 100))
     .toString()
     .padStart(2, '0')}`;
+  // Real TCAS only shows a climb/descend arrow when the intruder is actually
+  // moving vertically; 250 fpm is the noise floor below which it stays blank.
   const intruderVsArrow = intruder.verticalSpeed > 250 ? '↑' : intruder.verticalSpeed < -250 ? '↓' : '';
 
+  // RA (Resolution Advisory) = collision risk, TCAS is commanding a maneuver - the
+  // most urgent state, shown red. TA (Traffic Advisory) = 'heads up', one level down.
   const isRA = conflict.tcasStatus === 'RESOLUTION_ADVISORY' || conflict.isWithinEmergencyRange;
   const isTA = conflict.tcasStatus === 'TRAFFIC_ADVISORY';
 

@@ -42,6 +42,8 @@ export const SimulationControls: React.FC<Props> = ({
   onToggleMute,
   currentDistanceNM,
 }) => {
+  // Inside 12 nautical miles the scenario becomes an emergency: this flag switches
+  // the controls into their urgent mode (and gates the decision prompt).
   const isInside12NM = currentDistanceNM <= EMERGENCY_PROMPT_RANGE_NM;
 
   return (

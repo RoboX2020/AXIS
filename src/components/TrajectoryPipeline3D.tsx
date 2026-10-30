@@ -35,6 +35,8 @@ const STAGE_BADGE: Record<PipelineStage, { label: string; tone: string }> = {
   runtime: { label: '④ NN RUNTIME PRUNING', tone: 'bg-yellow-400 text-slate-950 border-yellow-200' },
 };
 
+// Remember the user's left/right pane split across visits (localStorage),
+// clamped so neither pane can be squashed below a usable width.
 const readSplit = () => {
   try {
     const v = Number(window.localStorage.getItem(SPLIT_KEY));
@@ -45,6 +47,8 @@ const readSplit = () => {
   return 75;
 };
 
+// True only on wide screens: the split-pane layout needs a desktop-width window,
+// on narrow screens the panels stack instead. Live-updates on window resize.
 const useIsDesktop = () => {
   const query = '(min-width: 1024px)';
   const [match, setMatch] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);

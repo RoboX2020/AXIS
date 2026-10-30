@@ -31,6 +31,8 @@ export const ConflictResolutionModal: React.FC<Props> = ({
 }) => {
   if (!isOpen) return null;
 
+  // Resolution Advisory (or inside the 12 NM emergency ring) means a maneuver is
+  // mandatory, so the modal presents the escape options instead of just informing.
   const isRA = conflict.tcasStatus === 'RESOLUTION_ADVISORY' || conflict.isWithinEmergencyRange;
 
   return (
