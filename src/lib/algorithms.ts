@@ -114,6 +114,7 @@ export function computePredictedTrajectory(
  */
 // The core danger check between two planes: current separation, closing speed, exact time and distance of closest approach (CPA), then TCAS/FLARM logic turns that into an alert level, a recommended escape direction, and the message/voice cue to show.
 export function analyzeConflict(a: AircraftState, b: AircraftState): ConflictAnalysis {
+  // --- Step 1: how far apart are the planes right now? ---
   // Horizontal separation
   const dx = b.position.x - a.position.x; // NM
   const dy = b.position.y - a.position.y; // NM
@@ -123,6 +124,9 @@ export function analyzeConflict(a: AircraftState, b: AircraftState): ConflictAna
   const dz = b.position.z - a.position.z; // FT
   const verticalDeltaFt = Math.abs(dz);
 
+  // --- Step 2: how fast is the gap closing? ---
+  // Turn both planes' speed+heading into x/y velocities and subtract them to
+  // get the RELATIVE velocity: how fast B is moving compared to A.
   // Relative velocity
   const vA = getVelocityComponents(a.speed, a.heading);
   const vB = getVelocityComponents(b.speed, b.heading);
@@ -138,6 +142,9 @@ export function analyzeConflict(a: AircraftState, b: AircraftState): ConflictAna
   // Vertical closure rate (ft/min)
   const verticalClosureRateFpm = b.verticalSpeed - a.verticalSpeed;
 
+  // --- Step 3: the CPA - the moment and place they will be closest. ---
+  // Solve the relative-motion equation for the time of smallest distance,
+  // then move both planes to that moment and measure the gap there.
   // Exact CPA (Closest Point of Approach) Calculation
   let timeToCPASec = 0;
   let distanceAtCPANM = distanceNM;
@@ -145,6 +152,8 @@ export function analyzeConflict(a: AircraftState, b: AircraftState): ConflictAna
   let verticalSepAtCPAFt = verticalDeltaFt;
 
   if (relSpeedSquared > 0.0001) {
+    // The closest-approach formula: project the separation onto the relative
+    // velocity; the minus sign turns 'catching up' into a positive future time.
     const tHours = -(dx * dvx + dy * dvy) / relSpeedSquared;
     timeToCPASec = Math.max(0, tHours * 3600);
 
@@ -169,6 +178,9 @@ export function analyzeConflict(a: AircraftState, b: AircraftState): ConflictAna
     };
   }
 
+  // --- Step 4: does this trigger the 12 NM emergency prompt? ---
+  // All four must hold: close now AND closing in AND passing within 1.8 NM
+  // horizontally AND within 950 ft vertically at the closest point.
   // 12 NM Emergency Detection Range Trigger
   const isWithinEmergencyRange =
     distanceNM <= EMERGENCY_PROMPT_RANGE_NM &&
@@ -176,6 +188,7 @@ export function analyzeConflict(a: AircraftState, b: AircraftState): ConflictAna
     distanceAtCPANM <= 1.8 &&
     verticalSepAtCPAFt <= 950;
 
+  // --- Step 5: TCAS alert thresholds (from the real TCAS II spec) ---
   // TCAS II Parameters
   const DMOD = 1.1; // Distance Modification threshold in NM
   const ZTHR_TA = 900; // Vertical threshold for TA (ft)
@@ -183,6 +196,8 @@ export function analyzeConflict(a: AircraftState, b: AircraftState): ConflictAna
   const TAU_TA_THRESHOLD = 45; // Seconds
   const TAU_RA_THRESHOLD = 30; // Seconds
 
+  // 'Modified tau' = seconds until the planes are DMOD apart - TCAS's core
+  // measure. Only meaningful while actually closing; otherwise infinite.
   // Modified Tau calculation (TCAS II spec):
   let horizontalTauSec = Infinity;
   if (rangeRateKnots < -1) {
@@ -194,10 +209,14 @@ export function analyzeConflict(a: AircraftState, b: AircraftState): ConflictAna
   // Evaluate TCAS Status with 12 NM emergency prompt envelope
   let tcasStatus: 'CLEAR' | 'TRAFFIC_ADVISORY' | 'RESOLUTION_ADVISORY' = 'CLEAR';
 
+  // A Traffic Advisory (yellow 'heads up') needs BOTH a horizontal and a
+  // vertical threat at once:
   const horizontalThreatTA = (horizontalTauSec <= TAU_TA_THRESHOLD && isClosing) || distanceNM <= 14.0;
   const verticalThreatTA = verticalDeltaFt <= ZTHR_TA || (timeToCPASec <= 55 && verticalSepAtCPAFt <= ZTHR_TA);
 
   // Escalate to RA if inside 12 NM Emergency prompt range on intercept path, or standard TCAS RA
+  // A Resolution Advisory (red 'act now') needs the tighter versions - or
+  // simply being inside the 12 NM emergency envelope:
   const horizontalThreatRA =
     isWithinEmergencyRange ||
     (horizontalTauSec <= TAU_RA_THRESHOLD && isClosing) ||
@@ -210,6 +229,8 @@ export function analyzeConflict(a: AircraftState, b: AircraftState): ConflictAna
     tcasStatus = 'TRAFFIC_ADVISORY';
   }
 
+  // --- Step 6: FLARM (the small-aircraft system) gives a 0-3 alarm level
+  // plus a percentage risk, blending how soon, how close, and how vertical. ---
   // FLARM Dynamic Collision Assessment
   let flarmLevel: 0 | 1 | 2 | 3 = 0;
   let flarmRiskPercent = 0;
@@ -229,6 +250,9 @@ export function analyzeConflict(a: AircraftState, b: AircraftState): ConflictAna
     }
   }
 
+  // --- Step 7: pick the escape direction and the exact words for pilots ---
+  // The higher plane climbs, the lower one descends: that builds vertical
+  // separation fastest. The strings here are what the UI and voice say.
   // Recommended Sense Selection for Flight A
   let recommendedSense: 'CLIMB' | 'DESCEND' | 'TURN_RIGHT' | 'TURN_LEFT' | 'NONE' = 'NONE';
   let alertMessage = 'Airspace separation nominal';
@@ -249,6 +273,8 @@ export function analyzeConflict(a: AircraftState, b: AircraftState): ConflictAna
     alertVoiceCue = 'TRAFFIC, TRAFFIC';
   }
 
+  // 'Collision predicted' is the direst state: red alert AND passing within
+  // 0.6 NM horizontally and 400 ft vertically.
   const isCollisionPredicted =
     (tcasStatus === 'RESOLUTION_ADVISORY' || flarmLevel >= 2) &&
     distanceAtCPANM < 0.6 &&
@@ -364,6 +390,8 @@ export function evaluateCandidateTrajectories(
   durationSec: number = 75,
   stepSec: number = 2.0
 ): CandidateTrajectory[] {
+  // First draw where the OTHER plane (the intruder) will be, second by second -
+  // every candidate escape path below is tested against this line.
   // Precompute intruder's forward path for collision detection
   const intruderPath: Array<Vector3D & { timeSec: number }> = [];
   const intX = intruder.position.x;
@@ -382,6 +410,8 @@ export function evaluateCandidateTrajectories(
     });
   }
 
+  // The menu of escape ideas to try: fly straight, turn left/right gently or
+  // hard, climb, descend, and two combined climb/descend-and-turn plans.
   // Candidate trajectory hypotheses spanning lateral, vertical, and combined vectors
   const candidateDefs: Array<{
     id: string;
@@ -493,6 +523,8 @@ export function evaluateCandidateTrajectories(
     },
   ];
 
+  // Now fly each idea on paper: for every second, where would WE be and where
+  // is the intruder - and does any safety rule get broken along the way?
   return candidateDefs.map((def) => {
     const testHeading = (ownship.heading + def.headingDelta + 360) % 360;
     const testRad = headingToMathRad(testHeading);
@@ -535,6 +567,8 @@ export function evaluateCandidateTrajectories(
         timeToMinSepSec = t;
       }
 
+      // The four elimination rules: if any one is breached, the whole path is
+      // marked ELIMINATED with the reason (shown in the UI).
       // Filter Rule 1: Loss of Separation (Proximity DMOD < 1.4 NM and vertical < 750 FT)
       if (!isViolated && dist <= 1.4 && vertSep <= 750 && t > 2) {
         isViolated = true;
@@ -564,8 +598,11 @@ export function evaluateCandidateTrajectories(
       }
     }
 
+    // A path that broke a rule is ELIMINATED; otherwise it is VIABLE.
     let status: CandidateTrajectory['status'] = isViolated ? 'ELIMINATED' : 'VIABLE';
 
+    // If the pilot already chose a maneuver, find its matching candidate so it
+    // draws as a bold solid line.
     // When the pilot responds after the prompt, mark the chosen plan as 'SELECTED'
     if (ownship.hasResolved) {
       const actionUpper = (ownship.resolutionAction || '').toUpperCase();
@@ -580,6 +617,8 @@ export function evaluateCandidateTrajectories(
       }
     }
 
+    // Final 0-100 safety score: mostly about how close it gets horizontally,
+    // partly about vertical clearance. Eliminated paths score on a low scale.
     const distScore = Math.min(60, (minDistanceNM / 6.0) * 60);
     const vertScore = Math.min(40, (minVerticalSepFt / 3000) * 40);
     const safetyScore = Math.round(
