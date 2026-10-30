@@ -374,7 +374,11 @@ export const AeroVisualizer3D: React.FC<Props> = ({
         cpaMarkerRef.current.rotation.y += delta * 1.5;
       }
 
-      // Camera orchestration based on selected view mode
+      // === Camera director ===
+      // Every frame, decide where the camera should be and what it should look at,
+      // based on the view mode the user picked. Most modes LERP towards their
+      // desired position (glide a fraction of the remaining distance each frame) so
+      // switching views feels like a camera flight, not a teleport.
       if (cameraRef.current && planeAGroup.current && planeBGroup.current) {
         const cam = cameraRef.current;
         const pA = planeAGroup.current.position;
@@ -397,7 +401,11 @@ export const AeroVisualizer3D: React.FC<Props> = ({
           cam.position.copy(camCurrentPos.current);
           cam.lookAt(camCurrentTarget.current);
         } else if (viewMode === 'CHASE_A') {
-          // Smooth glide behind Flight Alpha along true flight heading
+          // Smooth glide behind Flight Alpha along true flight heading.
+          // applyQuaternion rotates the local "nose" direction (0,0,1) by the
+          // plane's current orientation, giving the world-space direction the jet
+          // is actually pointing. Camera sits 13 units BEHIND (subtract forward)
+          // and 4 up, looking at a point 18 units AHEAD of the nose.
           const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(planeAGroup.current.quaternion);
           desiredPos.copy(pA).sub(forward.clone().multiplyScalar(13)).add(new THREE.Vector3(0, 4.0, 0));
           desiredTarget.copy(pA).add(forward.clone().multiplyScalar(18));
@@ -415,7 +423,11 @@ export const AeroVisualizer3D: React.FC<Props> = ({
           cam.position.copy(camCurrentPos.current);
           cam.lookAt(camCurrentTarget.current);
         } else if (viewMode === 'COCKPIT_A') {
-          // Pilot Cockpit View from Flight Alpha looking forward out windscreen
+          // Pilot Cockpit View from Flight Alpha looking forward out windscreen.
+          // Eye point sits 1.8 units ahead of the model centre (on the flight deck)
+          // and 0.35 up. NOTE: this mode copies the camera directly with no lerp -
+          // a lagging camera inside a moving cockpit would feel like motion sickness,
+          // so the view is bolted to the airframe instead.
           const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(planeAGroup.current.quaternion);
           desiredPos.copy(pA).add(forward.clone().multiplyScalar(1.8)).add(new THREE.Vector3(0, 0.35, 0));
           desiredTarget.copy(desiredPos).add(forward.clone().multiplyScalar(30));
@@ -468,7 +480,12 @@ export const AeroVisualizer3D: React.FC<Props> = ({
   useEffect(() => {
     if (!planeAGroup.current || !planeBGroup.current || !sceneRef.current) return;
 
-    // Convert coordinates to 3D units
+    // Convert simulation coordinates into Three.js world axes. The sim keeps
+    // position as {x, y} = the horizontal map in nautical miles and z = altitude
+    // in feet. Three.js uses Y for up. So: sim x -> world x, sim z (altitude,
+    // shrunk by ALT_SCALE so 14,000 ft doesn't dwarf the 40-NM map) -> world y,
+    // and sim y -> world MINUS z (the minus matches Three's convention that -Z
+    // points north on the map).
     const posA3D = new THREE.Vector3(
       planeA.position.x,
       planeA.position.z * ALT_SCALE,
@@ -514,7 +531,9 @@ export const AeroVisualizer3D: React.FC<Props> = ({
       planeBDropLine.current.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     }
 
-    // Direct Intercept Separation Line
+    // Direct Intercept Separation Line: a dashed line drawn straight between the
+    // two jets, but only once they're within 14 NM - far away it would just be
+    // visual noise; up close it's the "this gap is what matters" readout.
     if (separationLine.current) {
       if (conflict.distanceNM <= 14.0) {
         separationLine.current.visible = true;
@@ -530,6 +549,9 @@ export const AeroVisualizer3D: React.FC<Props> = ({
     const isRA = conflict.tcasStatus === 'RESOLUTION_ADVISORY' || conflict.isWithinEmergencyRange;
     const isTA = conflict.tcasStatus === 'TRAFFIC_ADVISORY';
 
+    // The translucent bubble around each jet is its threat-level beacon: calm
+    // cyan normally, amber and slightly larger on a Traffic Advisory, red and
+    // largest on a Resolution Advisory - readable from any camera angle.
     const updateBubble = (bubble: THREE.Mesh | null, isThreat: boolean, isResolution: boolean) => {
       if (!bubble) return;
       const mat = bubble.material as THREE.MeshBasicMaterial;
@@ -573,7 +595,9 @@ export const AeroVisualizer3D: React.FC<Props> = ({
       const dotMatA = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
       const dotMatB = new THREE.MeshBasicMaterial({ color: 0xfbbf24 });
 
-      // Add time ticks for Plane A (every 15 seconds up to 105s)
+      // Add time ticks for Plane A (every 15 seconds up to 105s): small dots
+      // along the dotted prediction so you can read WHERE the jet will be at
+      // t+15s, t+30s, ... - time made visible along the path.
       planeA.predictedTrajectory.forEach((p) => {
         if (p.timeSec % 15 === 0 && p.timeSec > 0 && p.timeSec <= 105) {
           const marker = new THREE.Mesh(dotGeo, dotMatA);
@@ -608,7 +632,10 @@ export const AeroVisualizer3D: React.FC<Props> = ({
     updateDecidedLine(decidedLineA.current, planeA.decidedRoute);
     updateDecidedLine(decidedLineB.current, planeB.decidedRoute);
 
-    // CPA 3D Marker
+    // CPA 3D Marker: the spinning white diamond showing WHERE the closest
+    // approach will happen. Shown only when the intercept is both soon (under 55
+    // seconds away) and actually dangerous (miss distance under 2.5 NM) - beyond
+    // that the prediction is too fuzzy to be worth alarming over.
     if (cpaMarkerRef.current) {
       if (conflict.timeToCPASec > 0 && conflict.timeToCPASec <= 55 && conflict.distanceAtCPANM < 2.5) {
         cpaMarkerRef.current.visible = true;
