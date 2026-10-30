@@ -41,18 +41,24 @@ export const AirspaceTacticalCanvas: React.FC<Props> = ({
   // Airspace spans ±22 Nautical Miles
   const MAP_RANGE_NM = 22;
 
-  // Coordinate transforms
+  // Coordinate transforms between simulation space (nautical miles, origin at
+  // screen centre, +y = north/up) and canvas pixels (origin at top-left,
+  // +y = DOWN). That's why the y formulas flip sign. `scale` uses the smaller
+  // dimension so the full +/-22 NM range always fits without stretching.
   const nmToCanvas = useCallback(
     (xNM: number, yNM: number, width: number, height: number) => {
       const scale = Math.min(width, height) / (MAP_RANGE_NM * 2);
       return {
         cx: width / 2 + xNM * scale,
+        // minus: sim "up" is canvas "up" (a smaller pixel y value)
         cy: height / 2 - yNM * scale,
       };
     },
     []
   );
 
+  // The exact inverse of nmToCanvas - used when the user drags a plane, to turn
+  // their pointer position back into nautical miles.
   const canvasToNm = useCallback(
     (cx: number, cy: number, width: number, height: number) => {
       const scale = Math.min(width, height) / (MAP_RANGE_NM * 2);
@@ -367,6 +373,8 @@ export const AirspaceTacticalCanvas: React.FC<Props> = ({
     const cy = ((e.clientY - rect.top) / rect.height) * canvas.height;
 
     if (!dragMode) {
+      // Not dragging: just detect hover. hypot() is the straight-line pixel
+      // distance from pointer to each plane's dot; 26 px is the grab radius.
       const posA = nmToCanvas(planeA.position.x, planeA.position.y, canvas.width, canvas.height);
       const posB = nmToCanvas(planeB.position.x, planeB.position.y, canvas.width, canvas.height);
       if (Math.hypot(cx - posA.cx, cy - posA.cy) < 26) setHoveredPlane('A');
@@ -379,6 +387,9 @@ export const AirspaceTacticalCanvas: React.FC<Props> = ({
     const updateFn = selectedPlane === 'A' ? onChangePlaneA : onChangePlaneB;
 
     if (dragMode === 'position') {
+      // Dragging the plane itself: move it to the pointer (converted to NM),
+      // clamped to +/-20 NM so you can't fling it off the map, rounded to 2
+      // decimals to avoid noisy floating-point positions.
       const { xNM, yNM } = canvasToNm(cx, cy, canvas.width, canvas.height);
       const clampedX = Math.max(-20, Math.min(20, Number(xNM.toFixed(2))));
       const clampedY = Math.max(-20, Math.min(20, Number(yNM.toFixed(2))));
@@ -389,8 +400,15 @@ export const AirspaceTacticalCanvas: React.FC<Props> = ({
         history: [{ x: clampedX, y: clampedY, z: currentPlane.position.z }],
       });
     } else if (dragMode === 'heading') {
+      // Dragging the heading handle: point the nose at the pointer.
       const pos = nmToCanvas(currentPlane.position.x, currentPlane.position.y, canvas.width, canvas.height);
+      // atan2 gives the pointer's angle around the plane in canvas math convention
+      // (0 rad = pointing RIGHT/east, positive = counter-clockwise... but canvas y
+      // grows downward, so it reads clockwise on screen).
       const angleRad = Math.atan2(cy - pos.cy, cx - pos.cx);
+      // Convert to compass degrees: aviation heading 0 = UP (north), increasing
+      // clockwise. Canvas angle 0 = RIGHT. Adding 90 after the rad->deg conversion
+      // rotates the zero point from "east" to "north" to match the compass rose.
       let angleDeg = Math.round((angleRad * 180) / Math.PI + 90);
       if (angleDeg < 0) angleDeg += 360;
       angleDeg = angleDeg % 360;
