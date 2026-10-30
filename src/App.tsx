@@ -148,16 +148,29 @@ export default function App() {
     }>
   >([]);
 
-  // Calculate live conflict metrics
+  // --- Derived conflict data (recomputed whenever a plane moves) ---
+  // Run the full conflict analysis (algorithms.ts) on the CURRENT positions of both
+  // planes. Because planeA/planeB are React state, every physics tick re-renders
+  // this component and this line runs again with fresh positions - so `conflict`
+  // always describes "right now", never a stale moment.
   const conflict = analyzeConflict(planeA, planeB);
+  // Build the 3 menu options (climb+turn / descend+turn / turn only) the pilot will
+  // be offered if a Resolution Advisory fires. Also fresh every render.
   const resolutionOptions = generateResolutionOptions(planeA, planeB, conflict);
 
-  // Compute multi-hypothesis candidate trajectories and dynamic algorithmic filtering
+  // Evaluate the 8 escape-trajectory candidates (trajectoryTree.ts). useMemo caches
+  // the result: React only re-runs the expensive evaluation when one of the listed
+  // inputs actually changed, instead of on every single render (this component also
+  // re-renders for UI-only reasons like opening a panel, which shouldn't redo math).
   const candidateTrajectories = useMemo<CandidateTrajectory[]>(() => {
     return evaluateCandidateTrajectories(planeA, planeB, conflict);
   }, [planeA, planeB, conflict]);
 
-  // Compute forward predicted trajectories (Dotted Lines) with long 120s range
+  // Recompute the forward "dotted line" predictions whenever either plane's motion
+  // changes. The projections look 120 simulated seconds ahead at 1.5 s resolution.
+  // NOTE the dependency list below names individual fields (position, heading, speed)
+  // instead of the whole planeA/planeB objects - so purely visual state changes (like
+  // the history array growing) don't trigger a wasteful recompute.
   useEffect(() => {
     const trajA = computePredictedTrajectory(planeA, 120, 1.5);
     const trajB = computePredictedTrajectory(planeB, 120, 1.5);
@@ -180,10 +193,15 @@ export default function App() {
     planeB.turnRate,
   ]);
 
-  // Audio Alerts on status change
+  // Play cockpit audio alerts - but only at the MOMENT the threat level CHANGES,
+  // not on every tick while it stays the same. The `lastSoundPlayed` ref remembers
+  // which alert is already sounding; without it, the "RESOLUTION ADVISORY" voice
+  // would restart 20 times per second for the whole emergency.
   useEffect(() => {
     const isRA = conflict.tcasStatus === 'RESOLUTION_ADVISORY' || conflict.isWithinEmergencyRange;
     if (isRA) {
+      // Most urgent: a Resolution Advisory (or the even-closer 12 NM emergency range).
+      // Play it only if it isn't the alert already playing.
       if (lastSoundPlayed.current !== 'RA') {
         avionicsAudio.playResolutionAdvisory();
         lastSoundPlayed.current = 'RA';
@@ -201,18 +219,29 @@ export default function App() {
     }
   }, [conflict.tcasStatus, conflict.isWithinEmergencyRange]);
 
-  // Emergency 12 NM Prompt Trigger
+  // Decide when to pop the escape-maneuver prompter (the pilot decision point).
   useEffect(() => {
+    // Prompt when ANY of the three warning systems says the situation is serious:
+    //   - TCAS issued a Resolution Advisory (the planes WILL get too close), or
+    //   - they're already inside the emergency 12 NM envelope, or
+    //   - the drone-style FLARM risk gauge hit level 2 (out of 3).
     const shouldPrompt =
       (conflict.tcasStatus === 'RESOLUTION_ADVISORY' ||
         conflict.isWithinEmergencyRange ||
         conflict.flarmLevel >= 2) &&
+      // ...but only once per conflict (the latch ref flips to true after prompting
+      // and is only reset when a scenario is loaded/reset), and only if the pilot
+      // hasn't already resolved this conflict.
       !hasPromptedForThisConflict.current &&
       !planeA.hasResolved;
 
     if (isSimulating && shouldPrompt) {
+      // Latch the "already prompted" flag BEFORE opening, so the next tick can't
+      // queue a second copy of the modal.
       hasPromptedForThisConflict.current = true;
       setIsPromptOpen(true);
+      // Auto-pause the simulation so the pilot has unlimited time to decide
+      // (unless the user disabled that in settings).
       if (autoPauseOnRA) {
         setIsSimulating(false);
       }
@@ -226,36 +255,52 @@ export default function App() {
     planeA.hasResolved,
   ]);
 
-  // Main Simulation Physics Tick Loop
+  // === THE PHYSICS ENGINE ===
+  // This is the simulation's heartbeat: a timer that fires every 50 real milliseconds
+  // and moves both planes forward by one step. Everything visual (aircraft positions,
+  // trails, the conflict analysis, the 3D scene) flows out of the state written here.
   useEffect(() => {
+    // Paused? Don't even start the timer.
     if (!isSimulating) return;
 
     const intervalMs = 50;
+    // How many SIMULATED seconds pass per tick: 0.05 s at 1x speed, scaled up by the
+    // speed slider (at 8x, one real second covers 8 simulated seconds).
     const simDtSec = (intervalMs / 1000) * simSpeed;
 
     const interval = setInterval(() => {
       setSimTimeSec((prev) => prev + simDtSec);
 
-      // --- Update Plane A ---
+      // --- Move Plane A one step ---
       setPlaneA((currA) => {
+        // Start from the current values; each block below may adjust them.
         let newHeading = currA.heading;
         let newTurnRate = 0;
         let newBankAngle = 0;
         let newVerticalSpeed = currA.verticalSpeed;
 
+        // STEERING: if an escape maneuver set a target heading, steer towards it.
         if (targetFlightPlanA.current.targetHeading !== null) {
           const targetH = targetFlightPlanA.current.targetHeading;
           let diff = targetH - newHeading;
+          // Compass headings wrap around: 10 deg to 350 deg is a 20 deg LEFT turn,
+          // not a 340 deg right turn. These two loops fold the difference into
+          // (-180, +180] so the plane always turns the SHORT way round the compass.
           while (diff < -180) diff += 360;
           while (diff > 180) diff -= 360;
 
           if (Math.abs(diff) > 0.5) {
+            // Still off-target: turn at 8.5 deg/s (a hard evasive rate) in the
+            // correct direction. min(...) prevents overshooting the target on the
+            // final tick; the +360 % 360 keeps the result in 0-359.
             const turnStep = 8.5 * simDtSec;
             const turnDir = Math.sign(diff);
             newTurnRate = turnDir * 8.5;
             newBankAngle = turnDir * 35; // Sharp 35-degree evasive bank
             newHeading = (newHeading + turnDir * Math.min(Math.abs(diff), turnStep) + 360) % 360;
           } else {
+            // Close enough (within half a degree): snap to the target, level the
+            // wings, and clear the steering order so we fly straight from here.
             newHeading = targetH;
             newTurnRate = 0;
             newBankAngle = 0;
@@ -263,6 +308,9 @@ export default function App() {
           }
         }
 
+        // VERTICAL STEERING: same idea for climb/descent - ramp the vertical speed
+        // towards the ordered value at up to 850 ft/min per simulated second (a
+        // strong but plausible vertical acceleration), instead of jumping instantly.
         if (targetFlightPlanA.current.targetVerticalSpeed !== null) {
           const targetVS = targetFlightPlanA.current.targetVerticalSpeed;
           const vsDiff = targetVS - newVerticalSpeed;
@@ -273,6 +321,10 @@ export default function App() {
           }
         }
 
+        // MOVE: split "speed along a compass heading" into north/east components
+        // (NM per hour), scale by the step time to get NM moved this tick, and add
+        // to the position. Altitude comes from vertical speed (ft/min scaled to the
+        // step), floored at 1,000 ft so a plane can never sink into the ground.
         const vA = getVelocityComponents(currA.speed, newHeading);
         const newX = currA.position.x + (vA.vx / 3600) * simDtSec;
         const newY = currA.position.y + (vA.vy / 3600) * simDtSec;
@@ -280,8 +332,13 @@ export default function App() {
 
         const newPos = { x: newX, y: newY, z: newZ };
         const { lat, lon } = nmToLatLon(newX, newY);
+        // Nose attitude for the 3D model: roughly proportional to climb rate,
+        // clamped to -12..+15 deg so the model never points absurdly up or down.
         const pitchAngle = Math.max(-12, Math.min(15, newVerticalSpeed / 250));
 
+        // The DECIDED route only starts recording after the pilot has picked an
+        // escape maneuver - it is the "what we actually flew after deciding" trail,
+        // drawn as a solid line in the 3D view to contrast with the pre-decision path.
         const updatedDecidedRoute = currA.hasResolved
           ? [...currA.decidedRoute, { ...newPos }]
           : [];
@@ -296,12 +353,19 @@ export default function App() {
           pitchAngle,
           lat,
           lon,
+          // Keep the last 180 breadcrumbs (about 9 simulated seconds at 20 ticks/s)
+          // as the fading smoke trail behind the plane.
           history: [...currA.history.slice(-180), { ...newPos }],
           decidedRoute: updatedDecidedRoute,
         };
       });
 
-      // --- Update Plane B (Coordinated kinematics: turns, banks, dives/climbs opposite to Plane A) ---
+      // --- Move Plane B one step ---
+      // IDENTICAL physics to Plane A (same steering, vertical ramp, and movement
+      // math as commented above), just reading Plane B's own state and flight plan.
+      // During a coordinated TCAS resolution its orders are the OPPOSITE of A's
+      // (A climbs while B dives) - that coordination is set up in
+      // handleSelectResolutionOption, not here.
       setPlaneB((currB) => {
         let newHeading = currB.heading;
         let newTurnRate = 0;
@@ -365,7 +429,8 @@ export default function App() {
         };
       });
 
-      // Record separation point
+      // Log one row for the separation-over-time chart: keep only the last 90
+      // points (the chart shows the most recent window, not the whole run).
       setTimeHistory((prev) => [
         ...prev.slice(-90),
         {
@@ -377,6 +442,9 @@ export default function App() {
       ]);
     }, intervalMs);
 
+    // Cleanup: if the component re-renders (e.g. speed changed) or unmounts,
+    // stop the old timer before a new one is created - otherwise timers would
+    // stack up and the simulation would run multiple steps per tick.
     return () => clearInterval(interval);
   }, [isSimulating, simSpeed, conflict.distanceNM, planeA.position.z, planeB.position.z, simTimeSec]);
 
@@ -552,7 +620,10 @@ export default function App() {
   const handleSelectResolutionOption = (option: ResolutionOption) => {
     setIsPromptOpen(false);
 
-    // Flight A maneuvers
+    // Translate the chosen option's relative changes ("turn +30 deg", "climb at
+    // +2,800 ft/min") into ABSOLUTE targets for Flight A. A delta of 0 means "no
+    // change on that axis", which we store as null so the physics loop skips it.
+    // (+360) % 360 keeps the compass target in the 0-359 range.
     const targetHeadingA =
       option.headingDelta !== 0 ? (planeA.heading + option.headingDelta + 360) % 360 : null;
     const targetVerticalSpeedA = option.targetVerticalSpeed !== 0 ? option.targetVerticalSpeed : null;
@@ -564,12 +635,19 @@ export default function App() {
       maneuverStartTime: simTimeSec,
     };
 
-    // Coordinated Flight B maneuvers (Z-axis complementary: if Flight A climbs, Flight B dives!)
+    // Flight B gets a COORDINATED response, like real TCAS: the two aircraft's
+    // systems talk to each other so one climbs while the other descends, doubling
+    // the vertical separation rate.
     const targetHeadingB =
+      // If the option specifies a separate heading change for B, apply it;
+      // otherwise B keeps its current heading (only A turns).
       option.headingDeltaB !== undefined && option.headingDeltaB !== 0
         ? (planeB.heading + option.headingDeltaB + 360) % 360
         : null;
     const targetVerticalSpeedB =
+      // Priority: (1) an explicit vertical order for B if the option carries one,
+      // (2) otherwise the OPPOSITE of A's climb/descent (the coordination rule -
+      // note the minus sign), (3) nothing if A isn't changing altitude either.
       option.targetVerticalSpeedB !== undefined
         ? option.targetVerticalSpeedB
         : option.targetVerticalSpeed !== 0
@@ -583,6 +661,8 @@ export default function App() {
       maneuverStartTime: simTimeSec,
     };
 
+    // Mark Flight A resolved: hasResolved makes the physics loop start recording
+    // the "decided route" trail from this exact position (see the tick loop above).
     setPlaneA((prev) => ({
       ...prev,
       hasResolved: true,
@@ -603,6 +683,8 @@ export default function App() {
       decidedRoute: [{ ...prev.position }],
     }));
 
+    // Reassure the pilot audibly and resume the simulation so we can watch the
+    // chosen maneuver physically play out.
     avionicsAudio.playClearOfConflict();
     setIsSimulating(true);
   };
