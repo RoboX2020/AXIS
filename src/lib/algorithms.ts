@@ -1,3 +1,27 @@
+// ============================================================================
+// algorithms.ts - the collision-avoidance brain.
+//
+// This file turns two aircraft states (position, heading, speed, climb
+// rate) into answers:
+//   - Where will each plane be over the next 2 minutes?
+//     (computePredictedTrajectory)
+//   - Are they going to conflict? How close, and when?
+//     (analyzeConflict - the real TCAS/FLARM math: CPA, tau, thresholds)
+//   - What escape maneuvers could the pilots pick?
+//     (generateResolutionOptions)
+//   - If we draw many possible escape paths, which are actually safe?
+//     (evaluateCandidateTrajectories - tries them and grades each one)
+//   - What would this plane's live radio telemetry look like?
+//     (generateADSBTelemetry - a simulated ADS-B message)
+//   - Ready-made starter scenarios (SCENARIO_PRESETS: head-on, crossing...)
+//
+// AVIATION WORDS USED BELOW:
+//   CPA  = Closest Point of Approach (the moment two planes are nearest)
+//   tau  = "seconds until we are too close" - TCAS's core measure
+//   DMOD/ZTHR = the distance/altitude thresholds TCAS alarms at
+//   TCAS = the collision-avoidance system in airliners; FLARM = the small
+//   aircraft/glider equivalent.
+// ============================================================================
 /**
  * Flight Path Prediction & Collision Avoidance Algorithms
  * Implements real-world algorithms:
@@ -18,6 +42,7 @@ const NM_TO_DEG_LON = 1 / (60 * Math.cos((REF_LAT * Math.PI) / 180));
 // Detection range constant as requested by user
 export const EMERGENCY_PROMPT_RANGE_NM = 12.0;
 
+// Convert our local x/y (in NM from the reference point) into real latitude/longitude.
 export function nmToLatLon(xNM: number, yNM: number): { lat: number; lon: number } {
   const lat = REF_LAT + yNM * NM_TO_DEG_LAT;
   const lon = REF_LON + xNM * NM_TO_DEG_LON;
@@ -25,11 +50,13 @@ export function nmToLatLon(xNM: number, yNM: number): { lat: number; lon: number
 }
 
 // Convert heading (0° = North, 90° = East) to mathematical radians
+// Convert aviation heading (0 = north, clockwise) into math radians (0 = east, counter-clockwise) for trig.
 export function headingToMathRad(headingDeg: number): number {
   return ((90 - headingDeg) * Math.PI) / 180;
 }
 
 // Compute velocity components in knots from speed and heading
+// Split "speed + heading" into x/y speeds, so motion can be added up per axis.
 export function getVelocityComponents(speedKt: number, headingDeg: number): { vx: number; vy: number } {
   const rad = headingToMathRad(headingDeg);
   return {
@@ -43,6 +70,7 @@ export function getVelocityComponents(speedKt: number, headingDeg: number): { vx
  * Uses FLARM/TCAS dead reckoning + turn extrapolation
  * durationSec set to 120s for long-range trajectory visibility
  */
+// Project the plane forward step by step (dead reckoning): advance heading by turn rate, move along it, climb at vertical speed. Returns the dotted predicted path with timestamps.
 export function computePredictedTrajectory(
   aircraft: AircraftState,
   durationSec: number = 120,
@@ -84,6 +112,7 @@ export function computePredictedTrajectory(
  * Perform TCAS II and FLARM conflict analysis between two aircraft
  * Incorporates 12.0 NM Emergency Detection & Prompt Range
  */
+// The core danger check between two planes: current separation, closing speed, exact time and distance of closest approach (CPA), then TCAS/FLARM logic turns that into an alert level, a recommended escape direction, and the message/voice cue to show.
 export function analyzeConflict(a: AircraftState, b: AircraftState): ConflictAnalysis {
   // Horizontal separation
   const dx = b.position.x - a.position.x; // NM
@@ -252,6 +281,7 @@ export function analyzeConflict(a: AircraftState, b: AircraftState): ConflictAna
 /**
  * Generate practical resolution options for the user prompt
  */
+// Build the menu of escape maneuvers offered to the user when things get close (coordinated climb/descend pairs, combined turn+climb, standard right turn), each with its projected separation.
 export function generateResolutionOptions(a: AircraftState, b: AircraftState, analysis: ConflictAnalysis): ResolutionOption[] {
   const isPlaneAAbove = a.position.z >= b.position.z;
 
@@ -326,6 +356,7 @@ export function generateResolutionOptions(a: AircraftState, b: AircraftState, an
  * Filters out unsafe paths using TCAS Tau, DMOD, ZTHR, and FLARM envelope rules.
  * If ownship has resolved a prompt decision, highlights the chosen path as 'SELECTED' (rendered in bold solid line).
  */
+// Try out many possible escape paths for your plane against the intruder's predicted path, grade each for safety (TCAS tau, DMOD, vertical thresholds, FLARM envelope), and mark the survivors - the path the pilot picked is flagged SELECTED.
 export function evaluateCandidateTrajectories(
   ownship: AircraftState,
   intruder: AircraftState,
@@ -578,6 +609,7 @@ export function evaluateCandidateTrajectories(
 /**
  * Generate simulated ADS-B DO-260B message payload
  */
+// Package the plane's current state as a simulated ADS-B radio message (the real transponder format airliners broadcast), for the telemetry panel.
 export function generateADSBTelemetry(aircraft: AircraftState): import('./types').ADSBTelemetry {
   const { lat, lon } = nmToLatLon(aircraft.position.x, aircraft.position.y);
 

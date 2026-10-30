@@ -1,3 +1,9 @@
+// ============================================================================
+// TelemetryPanel - the live ADS-B data feed, formatted like real air
+// traffic telemetry: each aircraft's position, altitude, speed, heading,
+// climb rate and transponder codes, plus the raw hex radio frame (see
+// generateADSBTelemetry in lib/algorithms.ts).
+// ============================================================================
 import React, { useState } from 'react';
 import { AircraftState, ConflictAnalysis } from '../lib/types';
 import { generateADSBTelemetry, EMERGENCY_PROMPT_RANGE_NM } from '../lib/algorithms';

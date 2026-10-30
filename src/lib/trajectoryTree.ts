@@ -1,3 +1,21 @@
+// ============================================================================
+// trajectoryTree.ts - the "AXIS pipeline": how the app dreams up and
+// filters thousands of possible escape paths. Pure logic, no graphics.
+//
+// Think of it as a tree growing from the aircraft's nose:
+//   Stage 1 (generateTree): every branch tip sprouts several new branches
+//           (turns, climbs, descents), so a few "hops" explode into
+//           thousands of possible paths.
+//   Stage 2 (llmPrune): a simulated rule-checker rejects every branch the
+//           real airframe could not fly (too tight a turn, too steep a
+//           climb) - rejected branches kill their children too.
+//   Stage 3 (consolidate): the surviving paths are grouped by similarity
+//           (k-means clustering) into 10-20 representative trajectories.
+//   Stage 4 (runtimeScore): a small scoring function ranks those against
+//           live conditions (fuel, weight, engine health, wind) and keeps
+//           the best 8-10.
+// Everything is seeded (deterministic): same inputs, same tree, every run.
+// ============================================================================
 /**
  * AXIS Trajectory Pipeline — pure, seeded logic (no three.js).
  *
@@ -72,6 +90,7 @@ export const ROOT_POSITION: [number, number, number] = [0, 0, 2.5];
 const SEED = 0xa715;
 const DEG = 180 / Math.PI;
 
+// A tiny seedable random-number generator: same seed, same sequence - that is what makes the "random" path fan identical on every run.
 export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
@@ -97,6 +116,7 @@ const cross = (a: V3, b: V3): V3 => [
 ];
 
 /** Generation cap half-angle: tight radius → near-full hemisphere, wide radius → closed umbrella. */
+// How wide the fan of new branches opens, from the turning radius: a tight turn radius opens the umbrella wide.
 export function capHalfAngleDeg(turningRadiusNM: number): number {
   return clamp(130 / (1 + (turningRadiusNM - 0.5) * 0.6), 12, 88);
 }
@@ -169,6 +189,7 @@ export interface PathTree {
   capDeg: number;
 }
 
+// STAGE 1: grow the whole path tree hop by hop, fanning out each tip; huge hops are sampled down so rendering stays fast.
 export function generateTree(args: PipelineArgs): PathTree {
   const rng = mulberry32(SEED ^ (args.pathsPerHop * 131 + args.numberOfHops * 977));
   const n = Math.round(args.pathsPerHop);
@@ -295,6 +316,7 @@ export interface PruneLimits {
 }
 
 /** Airframe envelope used by the (simulated) LLM pruner. */
+// Turn the aircraft settings (age, weight, climb rate, load factor) into concrete do-not-exceed limits for the pruner.
 export function pruneLimits(args: PipelineArgs): PruneLimits {
   const weightFactor = 1.15 - 0.4 * ((args.aircraftWeightPct - 40) / 60); // heavy → less agile
   const ageFactor = 1 - 0.3 * (args.aircraftAgeYrs / 35); // old airframe → derated
@@ -321,6 +343,7 @@ export interface PruneResult {
   rejectedCount: number;
 }
 
+// STAGE 2: walk every branch and accept/reject it against the airframe limits; a rejected branch rejects its whole subtree.
 export function llmPrune(tree: PathTree): PruneResult {
   const rng = mulberry32(SEED ^ 0x5eed);
   const limits = pruneLimits(tree.args);
@@ -435,6 +458,7 @@ function polylineFeatures(poly: Float32Array, pts: number): TrajectoryFeatures {
   };
 }
 
+// STAGE 3: cluster the surviving paths by similarity (k-means) into 10-20 representative trajectories.
 export function consolidate(tree: PathTree, prune: PruneResult): Consolidation {
   const rng = mulberry32(SEED ^ 0xc1);
   const pts = polylineLength(tree.hops);
@@ -570,6 +594,7 @@ export interface RuntimeResult {
 }
 
 /** 0 at nominal, 1 at the most adverse settings. */
+// How bad are current conditions, 0 (nominal) to 1 (worst), from the runtime sliders.
 export function runtimeStress(rt: RuntimeArgs): number {
   const n = DEFAULT_RUNTIME_ARGS;
   const weight = Math.max(0, rt.weightPct - n.weightPct) / (100 - n.weightPct);
@@ -584,6 +609,7 @@ export function runtimeStress(rt: RuntimeArgs): number {
   return clamp(worst * 0.7 + mean * 0.6, 0, 1);
 }
 
+// STAGE 4: score the representative trajectories against live conditions and keep the best 8-10, marking the top one.
 export function runtimeScore(con: Consolidation, rt: RuntimeArgs): RuntimeResult {
   const stress = runtimeStress(rt);
   // Seed from the (rounded) runtime state so ties break "randomly" but reproducibly.

@@ -1,3 +1,9 @@
+// ============================================================================
+// aircraftMesh.ts - builds the 3D jet you see in the visualizer, out of
+// primitive Three.js shapes (fuselage, swept wings, engines, tail, strobes)
+// - no model files. Also createTextSprite(): floating name labels that
+// always face the camera.
+// ============================================================================
 import * as THREE from 'three';
 
 // Helper to create 2D text canvas sprite for crisp floating labels

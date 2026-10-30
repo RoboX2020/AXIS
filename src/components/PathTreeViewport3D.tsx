@@ -1,3 +1,11 @@
+// ============================================================================
+// PathTreeViewport3D - the 3D window that draws the AXIS path tree: the
+// fan of possible escape paths growing from the aircraft nose, hop by hop.
+// Accepted segments glow green, rejected ones red, survivors yellow. It
+// animates the pipeline stages (grow, prune, consolidate) at human speed
+// so you can watch the algorithm think. Data comes from
+// lib/trajectoryTree.ts; camera: drag to orbit, scroll to zoom.
+// ============================================================================
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Compass, Eye, Minus, MoveHorizontal, Plus, RotateCcw } from 'lucide-react';

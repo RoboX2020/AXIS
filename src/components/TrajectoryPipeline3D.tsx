@@ -1,3 +1,9 @@
+// ============================================================================
+// TrajectoryPipeline3D - the self-contained "AXIS pipeline" walkthrough:
+// a resizable split view with the 3D path-tree viewport on one side
+// (PathTreeViewport3D) and its arguments panel on the other
+// (PipelineArgumentsPanel), plus the draggable divider between them.
+// ============================================================================
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GripVertical, Layers } from 'lucide-react';
 import { PathTreeViewport3D } from './PathTreeViewport3D';

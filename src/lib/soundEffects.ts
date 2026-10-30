@@ -1,3 +1,8 @@
+// ============================================================================
+// soundEffects.ts - the cockpit voice and alert tones ("TRAFFIC, TRAFFIC",
+// "CLIMB, CLIMB", ...), synthesized live with the Web Audio API - no audio
+// files. Call avionicsAudio.speak(...) / .playAlert(...) from the UI.
+// ============================================================================
 /**
  * Avionics Audio Synthesizer (Web Audio API)
  * Generates synthetic TCAS tones, clackers, and warning chimes

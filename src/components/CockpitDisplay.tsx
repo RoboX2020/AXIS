@@ -1,3 +1,9 @@
+// ============================================================================
+// CockpitDisplay - the mock glass cockpit: the instruments a pilot would
+// watch, including the TCAS Vertical Speed Indicator (which tells the
+// pilot to climb or descend) and the CDTI traffic radar. Read-only: it
+// renders the shared simulation state from App.tsx.
+// ============================================================================
 import React from 'react';
 import { AircraftState, ConflictAnalysis } from '../lib/types';
 import { ArrowUp, ArrowDown, ArrowRight, ArrowLeft, AlertCircle, Compass, Radio } from 'lucide-react';

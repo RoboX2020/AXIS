@@ -1,3 +1,10 @@
+// ============================================================================
+// AirspaceTacticalCanvas - the 2D radar screen: a top-down tactical map of
+// the airspace. Both jets, their heading vectors, the 12 NM emergency ring
+// and TCAS warning rings are drawn on a canvas grid. It is interactive:
+// drag a plane to move it, drag its heading handle to steer, before or
+// during a simulation run.
+// ============================================================================
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { AircraftState, CandidateTrajectory, ScenarioPreset } from '../lib/types';
 import { SCENARIO_PRESETS, EMERGENCY_PROMPT_RANGE_NM } from '../lib/algorithms';

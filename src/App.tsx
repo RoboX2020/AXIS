@@ -1,3 +1,15 @@
+// ============================================================================
+// App.tsx - the whole simulation's conductor.
+//
+// Owns the two aircraft and the clock: every animation frame it moves the
+// planes a step, asks algorithms.ts "are they in danger yet?" and updates
+// every screen element (2D radar canvas, 3D visualizer, cockpit, telemetry
+// panels). When planes get within the 12 NM emergency envelope it opens
+// the Pilot Decision Prompter (ConflictResolutionModal); the maneuver you
+// pick is applied to the planes here.
+// Everything you see is a child component of App; this file holds the
+// shared state they all read.
+// ============================================================================
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { AircraftState, CandidateTrajectory, ConflictAnalysis, ResolutionOption, ScenarioPreset, Vector3D } from './lib/types';
 import {
@@ -369,6 +381,7 @@ export default function App() {
   }, [isSimulating, simSpeed, conflict.distanceNM, planeA.position.z, planeB.position.z, simTimeSec]);
 
   // Load Scenario Preset
+  // Load a ready-made scenario (head-on, crossing...): reset both planes to the preset positions and restart the clock.
   const handleLoadScenario = useCallback((preset: ScenarioPreset) => {
     setActiveScenarioId(preset.id);
     setIsSimulating(false);
@@ -449,6 +462,7 @@ export default function App() {
   }, []);
 
   // Reset Simulation to Start Points
+  // Put both planes back where they started and clear the conflict state.
   const handleReset = useCallback(() => {
     setIsSimulating(false);
     setSimTimeSec(0);
@@ -502,6 +516,7 @@ export default function App() {
   }, []);
 
   // Step Forward (+1s)
+  // Advance the simulation one time step (used by the play/pause stepping control).
   const handleStepForward = useCallback(() => {
     setSimTimeSec((prev) => prev + 1);
     setPlaneA((currA) => {
@@ -533,6 +548,7 @@ export default function App() {
   }, []);
 
   // Execute Chosen Resolution Option from Prompt (Coordinates both Plane A and Plane B)
+  // The user picked an escape maneuver in the prompter: apply its climb/turn to the planes and mark the conflict resolved.
   const handleSelectResolutionOption = (option: ResolutionOption) => {
     setIsPromptOpen(false);
 
@@ -591,6 +607,7 @@ export default function App() {
     setIsSimulating(true);
   };
 
+  // Silence or re-enable the cockpit voice alerts.
   const handleToggleMute = () => {
     setIsAudioMuted((prev) => {
       const next = !prev;

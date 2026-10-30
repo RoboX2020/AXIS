@@ -1,3 +1,12 @@
+// ============================================================================
+// server.ts - the web server that hosts the app.
+// In development it runs Vite (instant reload while coding); in production
+// it serves the pre-built files in dist/. Its one API endpoint,
+// /api/health, just answers "ok" for uptime checks. All simulation logic
+// runs in the browser; this server only delivers files.
+// RUN IT: npm install && npm run dev (development) or npm run build &&
+// npm start (production).
+// ============================================================================
 import express from 'express';
 import http from 'http';
 import path from 'path';

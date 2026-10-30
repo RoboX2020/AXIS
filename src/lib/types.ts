@@ -1,3 +1,14 @@
+// ============================================================================
+// types.ts - the shared vocabulary of the whole app.
+//
+// Every "shape of data" used across AXIS lives here: what an aircraft is
+// (AircraftState), what a danger report looks like (ConflictAnalysis), what
+// an escape maneuver option is (ResolutionOption), and so on. No behavior
+// lives in this file - it is the dictionary the other files agree on.
+// Plain-English units: positions x/y are in nautical miles (NM) from a
+// reference point, z is altitude in feet, speed is knots, vertical speed
+// is feet per minute.
+// ============================================================================
 /**
  * Flight Path Prediction & Collision Avoidance Types
  */

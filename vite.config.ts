@@ -1,3 +1,8 @@
+// ============================================================================
+// vite.config.ts - build-tool settings for Vite (the tool that bundles this
+// app for the browser): React plugin, path aliases, dev-server behavior.
+// You rarely need to touch this; server.ts runs the actual server.
+// ============================================================================
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';

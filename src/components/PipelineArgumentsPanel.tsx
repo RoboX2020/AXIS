@@ -1,3 +1,9 @@
+// ============================================================================
+// PipelineArgumentsPanel - the knobs for the AXIS path-tree pipeline
+// (lib/trajectoryTree.ts): how many paths fan out per hop, how many hops,
+// turning radius, aircraft age/weight/climb limits, and the live "runtime"
+// sliders (fuel, engine health, wind). Changing a knob re-runs the tree.
+// ============================================================================
 import React from 'react';
 import { BrainCircuit, CheckCircle2, Cpu, Lock, Play, RotateCcw, Scissors, Sparkles, Star, Waves } from 'lucide-react';
 import {

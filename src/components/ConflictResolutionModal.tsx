@@ -1,3 +1,9 @@
+// ============================================================================
+// ConflictResolutionModal - the "Pilot Decision Prompter": when two planes
+// enter the 12 NM emergency envelope, this modal pops up with the escape
+// maneuvers from generateResolutionOptions (lib/algorithms.ts), each with
+// its projected separation. Picking one applies it to the live simulation.
+// ============================================================================
 import React from 'react';
 import { ConflictAnalysis, ResolutionOption, AircraftState } from '../lib/types';
 import { AlertOctagon, ArrowUpRight, CheckCircle2, ShieldAlert, Navigation, Compass, ArrowUp, ArrowDown } from 'lucide-react';

@@ -1,3 +1,10 @@
+// ============================================================================
+// AeroVisualizer3D - the live 3D world: two jets flying through the sky,
+// with their predicted paths (dotted lines), the path already flown, alert
+// rings and camera perspectives (chase, cockpit, tower...). Built with
+// Three.js; aircraft models come from lib/three/aircraftMesh.ts; all
+// positions come from the shared state in App.tsx.
+// ============================================================================
 import React, { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { AircraftState, ConflictAnalysis, Vector3D } from '../lib/types';

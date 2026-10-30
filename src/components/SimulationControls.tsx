@@ -1,3 +1,8 @@
+// ============================================================================
+// SimulationControls - the transport bar: play/pause, step, speed, reset,
+// scenario picker and sound toggle for the live simulation. It only sends
+// commands up to App.tsx; no simulation math happens here.
+// ============================================================================
 import React from 'react';
 import { Play, Pause, RotateCcw, FastForward, Volume2, VolumeX, ShieldAlert, Sparkles, AlertOctagon } from 'lucide-react';
 import { EMERGENCY_PROMPT_RANGE_NM } from '../lib/algorithms';
